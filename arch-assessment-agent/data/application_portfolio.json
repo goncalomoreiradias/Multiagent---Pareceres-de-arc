@@ -1,0 +1,82 @@
+[
+  {
+    "id": "APP-001",
+    "name": "SDAPI",
+    "domain": "Core Banking > Channels > Open Banking",
+    "cloud": "GCP",
+    "technology": "Apigee, Java, Spring Boot",
+    "criticality": "CRITICAL",
+    "integrations": ["SDS4H", "SDCDA"],
+    "description": "API Management Platform used to expose Open Banking APIs to external partners."
+  },
+  {
+    "id": "APP-002",
+    "name": "SDCDA",
+    "domain": "Core Banking > Channels",
+    "cloud": "Azure",
+    "technology": ".NET Core, React",
+    "criticality": "HIGH",
+    "integrations": ["SDAPI", "SDSFS"],
+    "description": "Central Digital Architecture Platform handling omnichannel experiences."
+  },
+  {
+    "id": "APP-003",
+    "name": "SDEPR",
+    "domain": "Business Support",
+    "cloud": "AWS / SAP Ariba",
+    "technology": "SAP, Python",
+    "criticality": "MEDIUM",
+    "integrations": ["SDS4H"],
+    "description": "Procurement and enterprise resource planning support application."
+  },
+  {
+    "id": "APP-004",
+    "name": "SDS4H",
+    "domain": "Core Banking > Operations",
+    "cloud": "On-Prem / Cloud",
+    "technology": "SAP S/4HANA",
+    "criticality": "CRITICAL",
+    "integrations": ["SDAPI", "SDEPR", "SDSFM"],
+    "description": "Core SAP platform managing financial and operational records."
+  },
+  {
+    "id": "APP-005",
+    "name": "SDRPD",
+    "domain": "Risk & Compliance",
+    "cloud": "SaaS",
+    "technology": "OneTrust",
+    "criticality": "HIGH",
+    "integrations": [],
+    "description": "Privacy and GDPR compliance management platform (OneTrust)."
+  },
+  {
+    "id": "APP-006",
+    "name": "SDSFS",
+    "domain": "Customer Intelligence",
+    "cloud": "AWS / SaaS",
+    "technology": "Salesforce Financial Services Cloud",
+    "criticality": "HIGH",
+    "integrations": ["SDCDA", "SDSFM", "SDAPI"],
+    "description": "CRM system specialized for Financial Services."
+  },
+  {
+    "id": "APP-007",
+    "name": "SDSFM",
+    "domain": "Customer Intelligence",
+    "cloud": "AWS / SaaS",
+    "technology": "Salesforce Marketing Cloud",
+    "criticality": "MEDIUM",
+    "integrations": ["SDSFS", "SDS4H"],
+    "description": "Marketing automation and customer journey mapping."
+  },
+  {
+    "id": "APP-008",
+    "name": "SDOSS",
+    "domain": "Core Banking > Channels",
+    "cloud": "Cloud",
+    "technology": "OutSystems",
+    "criticality": "HIGH",
+    "integrations": ["SDAPI"],
+    "description": "Low-code platform for rapid delivery of internal and B2B portals."
+  }
+]
