@@ -1,7 +1,9 @@
 import os
 import json
+import re
 from langchain_core.messages import HumanMessage
 from state.context_schema import GraphState
+from tools.response_parser import extract_json_text
 from config import config
 
 
@@ -35,17 +37,11 @@ def run_question_loop(state: GraphState) -> dict:
         .replace("{previous_questions}", prev_q_summary)
     )
 
-    llm = config.get_llm()
+    llm = config.get_llm("gemini_pro")
     response = llm.invoke([HumanMessage(content=formatted_prompt)])
 
     try:
-        content = response.content
-        if "```json" in content:
-            content = content.split("```json")[1].split("```")[0]
-        elif "```" in content:
-            content = content.split("```")[1].split("```")[0]
-
-        parsed_data = json.loads(content.strip())
+        parsed_data = json.loads(extract_json_text(response.content))
         new_questions = parsed_data.get("questions", [])
         context.context_confidence = float(parsed_data.get("context_confidence", 0.0))
 
@@ -55,9 +51,17 @@ def run_question_loop(state: GraphState) -> dict:
         context.questions.extend(unique_new[:3])  # Max 3 new per round
 
     except Exception as e:
-        print(f"[Question Agent] Error parsing JSON: {e}")
-        # Force progression if parsing fails
+        print(f"[Question Agent] Error parsing JSON: {e}\nContent was: {response.content}")
+        # Force progression if parsing fails so it doesn't get stuck forever
+        # But if it fails, maybe we just ask a default question
         context.context_confidence = 1.0
+        if context.question_rounds == 0:
+            context.questions.append({
+                "category": "TECHNICAL",
+                "question": "Pode fornecer mais detalhes arquitetónicos sobre o projeto?",
+                "rationale": "Fallback due to parsing error."
+            })
+            context.context_confidence = 0.0 # Force human answer
 
     context.question_rounds += 1
 

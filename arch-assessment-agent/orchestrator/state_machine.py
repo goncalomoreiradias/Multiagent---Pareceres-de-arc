@@ -21,13 +21,21 @@ def question_router(state: GraphState) -> str:
     context = state["context"]
     if context.context_confidence >= config.CONFIDENCE_THRESHOLD or context.question_rounds >= config.MAX_QUESTION_ROUNDS:
         return "context_builder"
-    return "__interrupt__"  # Pause to let the UI collect answers
+    return "ask_human"  # Pause before this node to let the UI collect answers
+
+def ask_human(state: GraphState) -> dict:
+    """Dummy node to represent human input collection."""
+    return {"current_agent": "ask_human"}
 
 
 def user_feedback_router(state: GraphState) -> str:
     """Routes based on user feedback after review."""
     user_feedback = state.get("user_feedback", "")
-    if user_feedback and user_feedback.strip() != "":
+    # Normalise: LangGraph can merge state into list in some edge cases
+    if isinstance(user_feedback, list):
+        user_feedback = " ".join(str(v) for v in user_feedback)
+    user_feedback = str(user_feedback or "")
+    if user_feedback.strip() != "":
         return "finalizer_reshape"
     return "finalizer_complete"
 
@@ -40,6 +48,7 @@ def build_graph():
     workflow.add_node("intake", run_intake)
     workflow.add_node("impact", run_impact_analysis)
     workflow.add_node("question_agent", run_question_loop)
+    workflow.add_node("ask_human", ask_human)
     workflow.add_node("context_builder", run_context_build)
     workflow.add_node("reasoner", run_reasoning)
     workflow.add_node("writer", run_writing)
@@ -61,9 +70,10 @@ def build_graph():
         question_router,
         {
             "context_builder": "context_builder",
-            "__interrupt__": "question_agent"  # Will re-enter after UI provides answers
+            "ask_human": "ask_human"
         }
     )
+    workflow.add_edge("ask_human", "question_agent")
 
     workflow.add_edge("context_builder", "reasoner")
     workflow.add_edge("reasoner", "writer")
@@ -86,5 +96,5 @@ def build_graph():
     # Use MemorySaver for checkpoints
     memory = MemorySaver()
 
-    # Interrupt after question_agent (to collect answers) and after reviewer (to collect feedback)
-    return workflow.compile(checkpointer=memory, interrupt_after=["question_agent", "reviewer"])
+    # Interrupt BEFORE ask_human (to collect answers) and AFTER reviewer (to collect feedback)
+    return workflow.compile(checkpointer=memory, interrupt_before=["ask_human"], interrupt_after=["reviewer"])

@@ -3,6 +3,7 @@ from langchain_core.messages import HumanMessage
 from state.context_schema import GraphState
 from tools.markdown_exporter import format_report
 from tools.file_writer import save_report
+from tools.response_parser import extract_text
 from config import config
 
 def run_reshape(state: GraphState) -> dict:
@@ -28,10 +29,10 @@ def run_reshape(state: GraphState) -> dict:
     Output ONLY the revised Markdown report. Do not include introductory text.
     """
     
-    llm = config.get_llm()
+    llm = config.get_llm("gemini_flash")
     response = llm.invoke([HumanMessage(content=prompt)])
     
-    context.draft_report_md = response.content.strip()
+    context.draft_report_md = extract_text(response.content).strip()
     
     return {
         "context": context,

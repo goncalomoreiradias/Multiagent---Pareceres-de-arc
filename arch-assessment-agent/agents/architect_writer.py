@@ -2,6 +2,7 @@ import os
 import json
 from langchain_core.messages import HumanMessage
 from state.context_schema import GraphState
+from tools.response_parser import extract_text
 from config import config
 
 def run_writing(state: GraphState) -> dict:
@@ -19,10 +20,10 @@ def run_writing(state: GraphState) -> dict:
                                       .replace("{architectural_reasoning}", json.dumps(context.architectural_reasoning, ensure_ascii=False))\
                                       .replace("{trade_offs}", json.dumps(context.trade_offs, ensure_ascii=False))
                                       
-    llm = config.get_llm()
+    llm = config.get_llm("gemini_pro")
     response = llm.invoke([HumanMessage(content=formatted_prompt)])
     
-    context.draft_report_md = response.content.strip()
+    context.draft_report_md = extract_text(response.content).strip()
     
     return {
         "context": context,

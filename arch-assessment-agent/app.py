@@ -190,7 +190,7 @@ def render_minimap():
     components.html(html, height=800, scrolling=True)
 
 # --- Core pipeline execution ---
-def execute_pipeline(initial_input: str = None):
+def execute_pipeline(initial_input: str = None, minimap_placeholder=None):
     """Run or resume the LangGraph pipeline."""
     graph = st.session_state.graph
     tc = st.session_state.thread_config
@@ -258,6 +258,10 @@ def execute_pipeline(initial_input: str = None):
                     next_agent = AGENT_SEQUENCE[idx+1][0]
                     if st.session_state.agent_status[next_agent] == "pending":
                         st.session_state.agent_status[next_agent] = "running"
+                        
+                if minimap_placeholder is not None:
+                    with minimap_placeholder.container():
+                        render_minimap()
 
         # Check where the graph stopped
         gs = graph.get_state(tc)
@@ -265,7 +269,7 @@ def execute_pipeline(initial_input: str = None):
 
         if gs.next:
             next_node = gs.next[0]
-            if next_node == "question_agent":
+            if next_node == "ask_human":
                 st.session_state.phase = "questions"
                 new_qs = ctx.questions[-3:]
                 q_text = f"🔍 **Ronda de Clarificação {ctx.question_rounds}:**\n\n"
@@ -312,7 +316,9 @@ with tab1:
             uploaded_files = st.file_uploader("Cadernos de encargos (PDF, DOCX, TXT)", accept_multiple_files=True)
             
         with st.container(border=True):
-            render_minimap()
+            minimap_placeholder = st.empty()
+            with minimap_placeholder.container():
+                render_minimap()
 
     with col_main:
         for msg in st.session_state.messages:
@@ -321,6 +327,8 @@ with tab1:
                 
         if prompt := st.chat_input("Descreva o pedido ou responda às perguntas..."):
             st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
             
             phase = st.session_state.phase
             if phase == "idle":
@@ -332,7 +340,9 @@ with tab1:
                     full_input += docs_text
 
                 st.session_state.messages.append({"role": "assistant", "content": "🚀 Pipeline iniciado..."})
-                execute_pipeline(initial_input=full_input)
+                with st.chat_message("assistant"):
+                    st.markdown("🚀 Pipeline iniciado... (Acompanhe o estado dos agentes no painel lateral)")
+                execute_pipeline(initial_input=full_input, minimap_placeholder=minimap_placeholder)
                 
             elif phase == "questions":
                 tc = st.session_state.thread_config
@@ -341,13 +351,21 @@ with tab1:
                 q_summary = "; ".join([q.get("question", "") for q in ctx.questions[-3:]])
                 ctx.raw_input += f"\n\n[Perguntas: {q_summary}]\n[Resposta: {prompt}]\n"
                 st.session_state.graph.update_state(tc, {"context": ctx})
-                execute_pipeline()
+                
+                st.session_state.messages.append({"role": "assistant", "content": "🚀 Retomando pipeline..."})
+                with st.chat_message("assistant"):
+                    st.markdown("🚀 Retomando pipeline...")
+                execute_pipeline(minimap_placeholder=minimap_placeholder)
                 
             elif phase == "review":
                 tc = st.session_state.thread_config
                 feedback = "" if prompt.strip().lower() in ["ok", "sim", "yes", "aprovar"] else prompt
                 st.session_state.graph.update_state(tc, {"user_feedback": feedback})
-                execute_pipeline()
+                
+                st.session_state.messages.append({"role": "assistant", "content": "🚀 A processar a sua resposta..."})
+                with st.chat_message("assistant"):
+                    st.markdown("🚀 A processar a sua resposta...")
+                execute_pipeline(minimap_placeholder=minimap_placeholder)
 
 with tab2:
     st.title("📊 Métricas de Execução")

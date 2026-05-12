@@ -3,6 +3,7 @@ import json
 import difflib
 from langchain_core.messages import HumanMessage
 from state.context_schema import GraphState
+from tools.response_parser import extract_json_text
 from config import config
 
 def fuzzy_match_portfolio(raw_input: str, brief_description: str) -> str:
@@ -45,17 +46,11 @@ def run_impact_analysis(state: GraphState) -> dict:
                                       .replace("{brief_description}", context.brief_description)\
                                       .replace("{portfolio_json}", relevant_portfolio)
                                       
-    llm = config.get_llm()
+    llm = config.get_llm("gemini_pro")
     response = llm.invoke([HumanMessage(content=formatted_prompt)])
     
     try:
-        content = response.content
-        if "```json" in content:
-            content = content.split("```json")[1].split("```")[0]
-        elif "```" in content:
-            content = content.split("```")[1].split("```")[0]
-            
-        parsed_data = json.loads(content.strip())
+        parsed_data = json.loads(extract_json_text(response.content))
         
         context.impacted_systems = parsed_data.get("impacted_systems", [])
         context.integration_points = parsed_data.get("integration_points", {})

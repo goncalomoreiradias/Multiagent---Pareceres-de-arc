@@ -2,6 +2,7 @@ import os
 import json
 from langchain_core.messages import HumanMessage
 from state.context_schema import GraphState
+from tools.response_parser import extract_json_text
 from config import config
 
 def run_intake(state: GraphState) -> dict:
@@ -20,19 +21,12 @@ def run_intake(state: GraphState) -> dict:
     formatted_prompt = prompt_template.replace("{raw_input}", raw_input)
     
     # Get LLM and invoke
-    llm = config.get_llm()
+    llm = config.get_llm("gemini_flash")
     # We ask the LLM to output JSON, LangChain can enforce this via structure or we just parse it.
     response = llm.invoke([HumanMessage(content=formatted_prompt)])
     
-    # Naive JSON extraction (in production, use structured outputs or json parser)
     try:
-        content = response.content
-        if "```json" in content:
-            content = content.split("```json")[1].split("```")[0]
-        elif "```" in content:
-            content = content.split("```")[1].split("```")[0]
-            
-        parsed_data = json.loads(content.strip())
+        parsed_data = json.loads(extract_json_text(response.content))
         
         # Update context
         context.request_type = parsed_data.get("request_type")

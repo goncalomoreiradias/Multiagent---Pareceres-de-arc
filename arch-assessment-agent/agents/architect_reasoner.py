@@ -2,6 +2,7 @@ import os
 import json
 from langchain_core.messages import HumanMessage
 from state.context_schema import GraphState
+from tools.response_parser import extract_json_text
 from config import config
 
 def run_reasoning(state: GraphState) -> dict:
@@ -21,17 +22,11 @@ def run_reasoning(state: GraphState) -> dict:
                                       .replace("{assumptions}", json.dumps(context.assumptions))\
                                       .replace("{impacted_systems}", json.dumps(context.impacted_systems))
                                       
-    llm = config.get_llm() # Standard reasoning model
+    llm = config.get_llm("gemini_pro") # Standard reasoning model
     response = llm.invoke([HumanMessage(content=formatted_prompt)])
     
     try:
-        content = response.content
-        if "```json" in content:
-            content = content.split("```json")[1].split("```")[0]
-        elif "```" in content:
-            content = content.split("```")[1].split("```")[0]
-            
-        parsed_data = json.loads(content.strip())
+        parsed_data = json.loads(extract_json_text(response.content))
         
         context.architectural_reasoning = parsed_data.get("architectural_reasoning", {})
         context.candidate_architectures = parsed_data.get("candidate_architectures", [])

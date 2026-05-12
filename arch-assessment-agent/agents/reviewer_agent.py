@@ -3,6 +3,7 @@ import json
 from langchain_core.messages import HumanMessage
 from state.context_schema import GraphState
 from tools.markdown_exporter import inject_diagrams
+from tools.response_parser import extract_json_text
 from config import config
 
 def run_review(state: GraphState) -> dict:
@@ -19,17 +20,11 @@ def run_review(state: GraphState) -> dict:
         
     formatted_prompt = prompt_template.replace("{draft_report_md}", full_draft)
                                       
-    llm = config.get_llm()
+    llm = config.get_llm("gemini_pro")
     response = llm.invoke([HumanMessage(content=formatted_prompt)])
     
     try:
-        content = response.content
-        if "```json" in content:
-            content = content.split("```json")[1].split("```")[0]
-        elif "```" in content:
-            content = content.split("```")[1].split("```")[0]
-            
-        parsed_data = json.loads(content.strip())
+        parsed_data = json.loads(extract_json_text(response.content))
         
         context.reviewer_feedback = parsed_data.get("reviewer_feedback", [])
         

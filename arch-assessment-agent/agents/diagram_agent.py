@@ -2,6 +2,7 @@ import os
 import json
 from langchain_core.messages import HumanMessage
 from state.context_schema import GraphState
+from tools.response_parser import extract_json_text
 from config import config
 
 def run_diagram_gen(state: GraphState) -> dict:
@@ -17,17 +18,11 @@ def run_diagram_gen(state: GraphState) -> dict:
                                       .replace("{architectural_reasoning}", json.dumps(context.architectural_reasoning))\
                                       .replace("{impacted_systems}", json.dumps(context.impacted_systems))
                                       
-    llm = config.get_llm()
+    llm = config.get_llm("gemini_pro")
     response = llm.invoke([HumanMessage(content=formatted_prompt)])
     
     try:
-        content = response.content
-        if "```json" in content:
-            content = content.split("```json")[1].split("```")[0]
-        elif "```" in content:
-            content = content.split("```")[1].split("```")[0]
-            
-        parsed_data = json.loads(content.strip())
+        parsed_data = json.loads(extract_json_text(response.content))
         
         context.diagrams = {
             "sequence_diagram": parsed_data.get("sequence_diagram", ""),

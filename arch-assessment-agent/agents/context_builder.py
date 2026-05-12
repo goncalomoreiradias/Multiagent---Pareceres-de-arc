@@ -1,6 +1,7 @@
 import json
 from langchain_core.messages import HumanMessage
 from state.context_schema import GraphState
+from tools.response_parser import extract_json_text
 from config import config
 
 def run_context_build(state: GraphState) -> dict:
@@ -31,17 +32,11 @@ def run_context_build(state: GraphState) -> dict:
     }}
     """
     
-    llm = config.get_llm()
+    llm = config.get_llm("gemini_flash")
     response = llm.invoke([HumanMessage(content=prompt)])
     
     try:
-        content = response.content
-        if "```json" in content:
-            content = content.split("```json")[1].split("```")[0]
-        elif "```" in content:
-            content = content.split("```")[1].split("```")[0]
-            
-        parsed_data = json.loads(content.strip())
+        parsed_data = json.loads(extract_json_text(response.content))
         
         context.business_requirements = parsed_data.get("business_requirements", [])
         context.technical_constraints = parsed_data.get("technical_constraints", [])

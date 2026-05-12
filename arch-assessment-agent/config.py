@@ -24,28 +24,36 @@ class Config:
     MAX_QUESTION_ROUNDS = 3
     
     @staticmethod
-    def get_llm(model_name: str = "openrouter"):
+    def get_llm(model_name: str = "gemini"):
         """Factory method to get the specified LangChain model."""
+        openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+        
+        # Fallback logic: if openrouter is requested but key is missing or empty, use gemini (Vertex AI)
+        if model_name == "openrouter" and (not openrouter_api_key or not openrouter_api_key.strip()):
+            model_name = "gemini"
+
         if model_name == "openrouter":
             from langchain_openai import ChatOpenAI
-            api_key = os.getenv("OPENROUTER_API_KEY")
-            if not api_key:
-                raise ValueError("OPENROUTER_API_KEY environment variable is missing.")
             return ChatOpenAI(
                 model="anthropic/claude-4.6-sonnet", # Utilizador pediu Sonnet 4.6
-                api_key=api_key,
+                api_key=openrouter_api_key,
                 base_url="https://openrouter.ai/api/v1",
                 temperature=0.2,
                 max_tokens=4096,  # Limite máximo para output para evitar reserva total de 65k e erro 402
                 max_retries=3
             )
-        elif model_name == "gemini":
+        # Support for specific gemini variants
+        if model_name in ["gemini_pro", "gemini_flash", "gemini"]:
             from langchain_google_genai import ChatGoogleGenerativeAI
             api_key = os.getenv("GOOGLE_API_KEY")
             if not api_key:
-                raise ValueError("GOOGLE_API_KEY environment variable is missing.")
+                raise ValueError("GOOGLE_API_KEY environment variable is missing (needed for Vertex/Gemini fallback).")
+            
+            # Default to pro if just 'gemini' is passed
+            actual_model = "gemini-3.1-pro-preview" if model_name in ["gemini_pro", "gemini"] else "gemini-3.1-flash-lite"
+            
             return ChatGoogleGenerativeAI(
-                model="gemini-2.5-pro", # Use the latest available or requested
+                model=actual_model,
                 temperature=0.2,
                 max_retries=3
             )
