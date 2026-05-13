@@ -17,19 +17,22 @@ def fuzzy_match_portfolio(raw_input: str, brief_description: str) -> str:
         
     text_to_search = f"{raw_input} {brief_description}".lower()
     
-    # Very simple keyword matching for MVP
+    # Improved matching for the new portfolio structure
     matched_systems = []
     for app in portfolio:
-        name_lower = app["name"].lower()
-        if name_lower in text_to_search or name_lower.replace("sd", "") in text_to_search:
+        sigla = str(app.get("SIGLA", "")).lower()
+        nome = str(app.get("NOME APLICAÇÃO", "")).lower()
+        
+        # Match by Sigla (exact or in text) or Name
+        if (sigla and sigla in text_to_search) or (nome and nome in text_to_search):
             matched_systems.append(app)
             
-    # If no matches found via keyword, return all for the LLM to figure out, 
-    # or just return the full portfolio in MVP since it's small.
+    # If too many matches or none, we limit to avoid blowing up the LLM context
+    # In a real scenario, we'd use a vector DB, but for now we take the top 20 or all if small
     if not matched_systems:
-        return json.dumps(portfolio, indent=2)
+        return json.dumps(portfolio[:20], indent=2) # Return a sample if nothing matches
         
-    return json.dumps(matched_systems, indent=2)
+    return json.dumps(matched_systems[:30], indent=2)
 
 def run_impact_analysis(state: GraphState) -> dict:
     """Identifies impacted systems using the portfolio."""
