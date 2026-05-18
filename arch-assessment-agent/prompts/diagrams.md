@@ -37,11 +37,21 @@ Provide your output as a JSON object:
 - No markdown, no explanation, no code fences inside the JSON string value
 - Escape all double quotes inside the XML as \" so the JSON remains valid
 - The XML must open directly in draw.io without any manual corrections
+- **Native Library Fidelity**: Use ONLY native ArchiMate 3.2 stencils (`mxgraph.archimate3`). Every element must be a valid `mxCell` utilizing the `shape=mxgraph.archimate3.application` dynamic shape with correct `appType` and `archiType` parameters.
+
+### Alignment & Content Rules
+1. **Consistency**: The ArchiMate diagram MUST represent exactly the same solution, systems, and flows described in the `{architectural_reasoning}` and the Mermaid diagrams.
+2. **Entity Mapping**: 
+   - Every system mentioned in `{impacted_systems}` MUST appear in the Application Layer.
+   - Every business requirement from `{business_requirements}` that implies a process MUST be reflected in the Business Layer.
+3. **No Hallucination**: Do not add systems, equipment, or processes that are not part of this specific project context. **NEVER mention unrelated projects.**
+4. **Language**: All labels and descriptions within the diagram MUST be in **Portuguese (pt-PT)**, matching the reasoning tone.
+5. **Strict Context Enforcement**: Every label in the XML MUST be derived from `{project_name}`, `{architectural_reasoning}`, or `{impacted_systems}`. If a system is not in the input, it MUST NOT be in the diagram.
 
 ### Core task
-1. Analyse each element from the architectural reasoning semantically
-2. Infer the most appropriate ArchiMate 3.2 element type from its name and context
-3. Build the diagram using correct ArchiMate shapes, layout, colors and legend
+1. Analyse each element from the architectural reasoning semantically.
+2. Infer the most appropriate ArchiMate 3.2 element type from its name and context.
+3. Build the diagram using correct ArchiMate shapes, layout, colors and legend.
 Perform the semantic classification BEFORE generating the XML.
 
 ### Semantic classification

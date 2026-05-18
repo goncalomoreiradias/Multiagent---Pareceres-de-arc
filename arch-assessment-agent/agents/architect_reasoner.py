@@ -7,7 +7,6 @@ from config import config
 
 def run_reasoning(state: GraphState) -> dict:
     """The core thinking engine (TOGAF ADM based)."""
-    print("[Architect Reasoner] Developing architectural strategy...")
     context = state["context"]
     
     prompt_path = os.path.join(config.PROMPTS_DIR, "reasoner.md")
@@ -33,7 +32,6 @@ def run_reasoning(state: GraphState) -> dict:
         context.trade_offs = parsed_data.get("trade_offs", {})
         
     except Exception as e:
-        print(f"[Architect Reasoner] Error parsing JSON: {e}")
         state["error"] = f"Reasoning failed: {e}"
         
     return {

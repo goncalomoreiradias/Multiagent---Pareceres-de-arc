@@ -46,148 +46,143 @@ if "graph" not in st.session_state:
     st.session_state.start_time = None
     
     st.session_state.agent_status = {
-        "intake": "pending",
-        "impact": "pending",
+        "intake_agent": "pending",
+        "impact_agent": "pending",
         "question_agent": "pending",
         "context_builder": "pending",
-        "reasoner": "pending",
-        "writer": "pending",
-        "diagrams": "pending",
-        "reviewer": "pending",
-        "finalizer": "pending"
+        "architect_reasoner": "pending",
+        "diagram_agent": "pending",
+        "architect_writer": "pending",
+        "reviewer_agent": "pending",
+        "ai_corrector": "pending",
+        "finalizer_reshape": "pending",
+        "finalizer_complete": "pending"
     }
 
 import streamlit.components.v1 as components
 
 # --- Expected sequence for the UI Mini-map ---
 AGENT_SEQUENCE = [
-    ("intake", "Receção", "📥"),
-    ("impact", "Impacto", "🎯"),
+    ("intake_agent", "Receção", "📥"),
+    ("impact_agent", "Impacto", "🎯"),
     ("question_agent", "Questões", "❓"),
     ("context_builder", "Contexto", "🧩"),
-    ("reasoner", "Raciocínio", "🧠"),
-    ("writer", "Escrita", "✍️"),
-    ("diagrams", "Diagramas", "📊"),
-    ("reviewer", "Revisão", "🧐"),
-    ("finalizer", "Finalização", "✅")
+    ("architect_reasoner", "Raciocínio", "🧠"),
+    ("diagram_agent", "Diagramas", "📊"),
+    ("architect_writer", "Escrita", "✍️"),
+    ("reviewer_agent", "Review do AI", "🧐"),
+    ("ai_corrector", "Auto Correção", "🛠️"),
+    ("finalizer_reshape", "Loop Utilizador", "🔄"),
+    ("finalizer_complete", "Finalização", "✅")
 ]
 
 def render_minimap():
-    st.markdown("### 🤖 Agents States", help="Passe o rato por cima de qualquer passo para ver métricas detalhadas.")
+    """Simple, stable agent minimap for UI progress tracking."""
+    st.markdown("### 🤖 Estado dos Agentes")
     
     html = """
     <style>
-      body { margin: 0; font-family: 'Inter', sans-serif; }
-      .workflow-container { padding: 10px 20px 20px 20px; }
-      
-      .node-row {
-          display: flex;
-          position: relative;
-          margin-bottom: 30px;
-      }
-      
-      /* Vertical line connecting nodes */
-      .node-row:not(:last-child)::after {
-          content: ""; position: absolute;
-          width: 3px; background: #cbd5e1;
-          left: 26px; top: 55px; bottom: -30px;
-          z-index: 0; transition: background 0.3s;
-      }
-      .node-row.active:not(:last-child)::after {
-          background: #10b981;
-      }
-      
+      .workflow-container { padding: 10px; font-family: sans-serif; }
+      .node-row { display: flex; align-items: center; margin-bottom: 20px; position: relative; }
       .node { 
-          width: 55px; height: 55px; border-radius: 14px; 
+          width: 40px; height: 40px; border-radius: 50%; 
           display: flex; align-items: center; justify-content: center;
-          font-size: 26px; cursor: pointer;
-          background: #ffffff; border: 2px solid #e2e8f0;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-          z-index: 1; transition: transform 0.2s ease;
-          flex-shrink: 0;
+          font-size: 20px; background: #f0f2f6; border: 2px solid #d1d5db;
+          z-index: 1;
       }
-      .node-row:hover .node { transform: scale(1.05); }
-      
-      .node.done { background: #ecfdf5; border-color: #10b981; }
-      .node.running { 
-          background: #eff6ff; border-color: #3b82f6; 
-          box-shadow: 0 0 15px rgba(59,130,246,0.5); 
-          animation: pulse 1.5s infinite; 
-      }
-      .node.pending { background: #f8fafc; border-color: #cbd5e1; filter: grayscale(100%); opacity: 0.6; }
+      .node.done { background: #e1f5fe; border-color: #03a9f4; }
+      .node.running { background: #fff9c4; border-color: #fbc02d; animation: pulse 2s infinite; }
+      .info { margin-left: 15px; }
+      .title { font-weight: bold; font-size: 14px; color: #31333f; }
+      .status { font-size: 12px; color: #555; }
       
       @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6); }
-        70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        0% { box-shadow: 0 0 0 0 rgba(251, 192, 45, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(251, 192, 45, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(251, 192, 45, 0); }
       }
       
-      .info-box {
-          margin-left: 15px; display: flex; flex-direction: column; justify-content: center;
-          flex-grow: 1;
+      .line {
+          position: absolute; left: 20px; top: 40px; width: 2px; height: 20px;
+          background: #d1d5db; z-index: 0;
       }
-      
-      .title { font-weight: 600; font-size: 15px; color: #1e293b; }
-      .status-text { font-size: 12px; color: #64748b; margin-top: 2px; }
-      
-      .metrics {
-          display: none; margin-top: 8px; font-size: 12px; color: #475569;
-          background: #f8fafc; padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0;
-          box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
-      }
-      .node-row:hover .metrics { display: block; animation: fadeIn 0.2s; }
-      
-      @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-      
-      .metric-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-      .metric-row span:nth-child(2) { font-weight: 600; color: #0f172a; }
     </style>
     <div class="workflow-container">
     """
     
-    for idx, (agent_key, agent_name, icon) in enumerate(AGENT_SEQUENCE):
-        status = st.session_state.agent_status.get(agent_key, "pending")
-        agent_metrics = [m for m in st.session_state.node_metrics if m["node"] == agent_key]
+    counts = {}
+    rendered_nodes = []
+    
+    # 1. Add all completed nodes from node_metrics
+    for m in st.session_state.node_metrics:
+        node_key = m["node"]
+        counts[node_key] = counts.get(node_key, 0) + 1
         
-        # Details HTML
-        if status == "pending":
-            status_desc = "⏳ Em fila..."
-            details_html = ""
-        elif status == "running":
-            status_desc = "🔄 A processar dados..."
-            details_html = ""
-        else:
-            total_dur = sum(m["duration"] for m in agent_metrics) if agent_metrics else 0.0
-            total_tok = sum(m["tokens"] for m in agent_metrics) if agent_metrics else 0
-            total_cost = sum(m["cost"] for m in agent_metrics) if agent_metrics else 0.0
-            
-            status_desc = "✅ Concluído com sucesso"
-            details_html = f"""
-            <div class="metrics">
-                <div class="metric-row"><span>⏱️ Tempo:</span> <span>{total_dur:.1f}s</span></div>
-                <div class="metric-row"><span>🪙 Tokens:</span> <span>{total_tok:,}</span></div>
-                <div class="metric-row"><span>💰 Custo:</span> <span>${total_cost:.4f}</span></div>
-            """
-            if agent_key == "question_agent" and len(agent_metrics) > 1:
-                details_html += f"<div class='metric-row'><span>🔄 Iterações:</span> <span>{len(agent_metrics)} rondas</span></div>"
-            details_html += "</div>"
+        name = node_key
+        icon = "⚙️"
+        for k, n, i in AGENT_SEQUENCE:
+            if k == node_key:
+                name = n
+                icon = i
+                break
                 
-        row_class = "node-row active" if status in ["done", "running"] else "node-row"
+        display_name = f"{name} (It. {counts[node_key]})" if counts[node_key] > 1 else name
+        rendered_nodes.append({
+            "key": node_key,
+            "name": display_name,
+            "icon": icon,
+            "status": "done"
+        })
+        
+    # 2. Add currently running node(s)
+    running_keys = [k for k, v in st.session_state.agent_status.items() if v == "running"]
+    for r_key in running_keys:
+        c = counts.get(r_key, 0) + 1
+        
+        name = r_key
+        icon = "⚙️"
+        for k, n, i in AGENT_SEQUENCE:
+            if k == r_key:
+                name = n
+                icon = i
+                break
+                
+        display_name = f"{name} (It. {c})" if c > 1 else name
+        rendered_nodes.append({
+            "key": r_key,
+            "name": display_name,
+            "icon": icon,
+            "status": "running"
+        })
+        
+    # 3. Add remaining nodes from AGENT_SEQUENCE that haven't run at all yet
+    for k, n, i in AGENT_SEQUENCE:
+        if k not in counts and k not in running_keys:
+            rendered_nodes.append({
+                "key": k,
+                "name": n,
+                "icon": i,
+                "status": "pending"
+            })
             
+    for idx, node in enumerate(rendered_nodes):
+        status = node["status"]
+        status_text = "Concluído" if status == "done" else ("Em execução..." if status == "running" else "Pendente")
+        
         html += f"""
-        <div class="{row_class}">
-            <div class="node {status}">{icon}</div>
-            <div class="info-box">
-                <div class="title">{agent_name}</div>
-                <div class="status-text">{status_desc}</div>
-                {details_html}
+        <div class="node-row">
+            <div class="node {status}">{node['icon']}</div>
+            <div class="info">
+                <div class="title">{node['name']}</div>
+                <div class="status">{status_text}</div>
             </div>
+            {"<div class='line'></div>" if idx < len(rendered_nodes)-1 else ""}
         </div>
         """
     
     html += "</div>"
-    
-    components.html(html, height=800, scrolling=True)
+    components.html(html, height=600)
+
 
 # --- Core pipeline execution ---
 def execute_pipeline(initial_input: str = None, minimap_placeholder=None):
@@ -202,7 +197,7 @@ def execute_pipeline(initial_input: str = None, minimap_placeholder=None):
             requires_human_input=False, user_feedback=None, error=None,
         )
         input_data = state
-        st.session_state.agent_status["intake"] = "running"
+        st.session_state.agent_status["intake_agent"] = "running"
         st.session_state.start_time = time.time()
     else:
         input_data = None
@@ -210,58 +205,89 @@ def execute_pipeline(initial_input: str = None, minimap_placeholder=None):
         if st.session_state.phase == "questions":
             st.session_state.agent_status["question_agent"] = "running"
         elif st.session_state.phase == "review":
-            st.session_state.agent_status["finalizer"] = "running"
+            # Determine which finalizer to start if we are resuming from human review
+            tc = st.session_state.thread_config
+            user_feedback = st.session_state.graph.get_state(tc).values.get("user_feedback", "")
+            if user_feedback:
+                st.session_state.agent_status["finalizer_reshape"] = "running"
+            else:
+                st.session_state.agent_status["finalizer_complete"] = "running"
 
     st.session_state.phase = "running"
 
+    # Helper to push minimap update immediately
+    def _update_minimap():
+        if minimap_placeholder is not None:
+            with minimap_placeholder.container():
+                render_minimap()
+
+    import contextlib
+    
     try:
-        # Wrap stream in OpenAI callback to capture token usage globally
-        with get_openai_callback() as cb:
-            node_start_time = time.time()
-            for event in graph.stream(input_data, tc, stream_mode="values"):
-                agent = event.get("current_agent", "")
-                
-                # We ignore init events
-                if not agent or agent == "init":
-                    continue
+        node_start_time = time.time()
+
+        # Show initial running state immediately
+        _update_minimap()
+
+        # Safely run the graph while suppressing stdout to avoid I/O crashes on Windows
+        with contextlib.redirect_stdout(io.StringIO()):
+            with get_openai_callback() as cb:
+                # Stream events from the graph
+                for event in graph.stream(input_data, tc, stream_mode="values"):
+                    agent = event.get("current_agent", "")
                     
-                # Mark agent as done and save metrics
-                duration = time.time() - node_start_time
-                node_start_time = time.time() # Reset for next node
-                
-                if agent.startswith("finalizer"):
-                    agent_key = "finalizer"
-                else:
+                    # We ignore init events and pause nodes
+                    if not agent or agent == "init" or agent in ["ask_human", "ask_human_review"]:
+                        continue
+
+                    # Mark agent as done and save metrics
+                    duration = time.time() - node_start_time
+                    node_start_time = time.time() # Reset for next node
+                    
                     agent_key = agent
-                    
-                st.session_state.agent_status[agent_key] = "done"
-                
-                # Approximate tokens for this step since callback captures cumulative
-                # This is a naive delta approach
-                step_tokens = cb.total_tokens - st.session_state.total_tokens
-                step_cost = cb.total_cost - st.session_state.total_cost
-                
-                st.session_state.node_metrics.append({
-                    "node": agent_key,
-                    "duration": duration,
-                    "tokens": step_tokens,
-                    "cost": step_cost
-                })
-                
-                st.session_state.total_tokens = cb.total_tokens
-                st.session_state.total_cost = cb.total_cost
-                
-                # Figure out the next agent to mark as "running" visually
-                # (This is an approximation for UI purposes)
-                idx = next((i for i, v in enumerate(AGENT_SEQUENCE) if v[0] == agent_key), -1)
-                if idx != -1 and idx + 1 < len(AGENT_SEQUENCE):
-                    next_agent = AGENT_SEQUENCE[idx+1][0]
-                    if st.session_state.agent_status[next_agent] == "pending":
-                        st.session_state.agent_status[next_agent] = "running"
                         
-                if minimap_placeholder is not None:
-                    with minimap_placeholder.container():
-                        render_minimap()
+                    st.session_state.agent_status[agent_key] = "done"
+                    
+                    # Calculate incremental cost and tokens
+                    current_cost = cb.total_cost - st.session_state.total_cost
+                    current_tokens = cb.total_tokens - st.session_state.total_tokens
+                    
+                    st.session_state.total_cost = cb.total_cost
+                    st.session_state.total_tokens = cb.total_tokens
+                    
+                    # Save simple metrics
+                    st.session_state.node_metrics.append({
+                        "node": agent_key,
+                        "duration": duration,
+                        "tokens": current_tokens,
+                        "cost": current_cost
+                    })
+                    
+                    # Mark the NEXT agent as "running" IMMEDIATELY so the UI reacts
+                    idx = next((i for i, v in enumerate(AGENT_SEQUENCE) if v[0] == agent_key), -1)
+                    if idx != -1 and idx + 1 < len(AGENT_SEQUENCE):
+                        next_agent = AGENT_SEQUENCE[idx+1][0]
+                        # Set to running to give immediate feedback during loop
+                        st.session_state.agent_status[next_agent] = "running"
+
+                    # Push UI update to the placeholder
+                    _update_minimap()
+
+        # Check where the graph stopped
+        gs = graph.get_state(tc)
+        
+        # Clear any falsely predicted running agents if they aren't actually next
+        for k in list(st.session_state.agent_status.keys()):
+            if st.session_state.agent_status[k] == "running":
+                st.session_state.agent_status[k] = "pending"
+                
+        if gs.next:
+            next_node = gs.next[0]
+            if next_node not in ["ask_human", "ask_human_review"]:
+                st.session_state.agent_status[next_node] = "running"
+
+        # Final UI update
+        _update_minimap()
 
         # Check where the graph stopped
         gs = graph.get_state(tc)
@@ -272,11 +298,33 @@ def execute_pipeline(initial_input: str = None, minimap_placeholder=None):
             if next_node == "ask_human":
                 st.session_state.phase = "questions"
                 new_qs = ctx.questions[-3:]
-                q_text = f"🔍 **Ronda de Clarificação {ctx.question_rounds}:**\n\n"
+                
+                # Build a visual confidence summary for the UI
+                conf_pct = int(ctx.context_confidence * 100)
+                progress_color = "green" if ctx.context_confidence >= config.CONFIDENCE_THRESHOLD else "orange"
+                
+                q_text = f"📊 **Grau de Confiança do Contexto: :{progress_color}[{conf_pct}%]** (Limiar: {int(config.CONFIDENCE_THRESHOLD*100)}%)\n\n"
+                
+                # Add dimension breakdown in a small list
+                dim_summary = []
+                for d_key, d_label, d_max in [
+                    ("business_objective", "Negócio", 20),
+                    ("technical_constraints", "Técnico", 20),
+                    ("security_requirements", "Segurança", 15),
+                    ("integration_points", "Integração", 15)
+                ]:
+                    score = ctx.dimension_scores.get(d_key, 0)
+                    dim_summary.append(f"{d_label}: {int(score)}/{d_max}")
+                
+                q_text += f"_{' | '.join(dim_summary)}_\n\n---\n\n"
+                q_text += f"🔍 **Ronda de Clarificação {ctx.question_rounds}:**\n\n"
                 for i, q in enumerate(new_qs, 1):
                     q_text += f"**{i}. [{q.get('category', '')}]** {q.get('question', '')}\n   _({q.get('rationale', '')})_\n\n"
+                
+                q_text += "--- \n💡 *Responda às questões acima ou escreva **'avançar'** para prosseguir com a informação atual.*"
                 st.session_state.messages.append({"role": "assistant", "content": q_text})
-            else:
+
+            elif next_node == "ask_human_review":
                 st.session_state.phase = "review"
                 draft_preview = ctx.draft_report_md
                 st.session_state.messages.append({"role": "assistant", "content": f"📝 **Draft gerado!** Analise o parecer e dê aprovação ('ok') ou indique correções.\n\n---\n\n{draft_preview}"})
@@ -325,14 +373,14 @@ with tab1:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
                 
-        if prompt := st.chat_input("Descreva o pedido ou responda às perguntas..."):
-            st.session_state.messages.append({"role": "user", "content": prompt})
+        if user_input := st.chat_input("Descreva o pedido ou responda às perguntas..."):
+            st.session_state.messages.append({"role": "user", "content": user_input})
             with st.chat_message("user"):
-                st.markdown(prompt)
+                st.markdown(user_input)
             
             phase = st.session_state.phase
             if phase == "idle":
-                full_input = prompt
+                full_input = user_input
                 if uploaded_files:
                     docs_text = "\n\n--- DOCUMENTOS DE SUPORTE ANEXADOS ---\n"
                     for f in uploaded_files:
@@ -349,7 +397,7 @@ with tab1:
                 gs = st.session_state.graph.get_state(tc)
                 ctx = gs.values["context"]
                 q_summary = "; ".join([q.get("question", "") for q in ctx.questions[-3:]])
-                ctx.raw_input += f"\n\n[Perguntas: {q_summary}]\n[Resposta: {prompt}]\n"
+                ctx.raw_input += f"\n\n[Perguntas: {q_summary}]\n[Resposta: {user_input}]\n"
                 st.session_state.graph.update_state(tc, {"context": ctx})
                 
                 st.session_state.messages.append({"role": "assistant", "content": "🚀 Retomando pipeline..."})
@@ -359,12 +407,15 @@ with tab1:
                 
             elif phase == "review":
                 tc = st.session_state.thread_config
-                feedback = "" if prompt.strip().lower() in ["ok", "sim", "yes", "aprovar"] else prompt
+                # Detect approval or feedback
+                feedback = "" if user_input.strip().lower() in ["ok", "sim", "yes", "aprovar", "aprovado"] else user_input
                 st.session_state.graph.update_state(tc, {"user_feedback": feedback})
                 
-                st.session_state.messages.append({"role": "assistant", "content": "🚀 A processar a sua resposta..."})
+                msg = "🔄 Feedback recebido. A reformular o parecer..." if feedback else "✨ Parecer aprovado! A finalizar documento..."
+                st.session_state.messages.append({"role": "assistant", "content": msg})
                 with st.chat_message("assistant"):
-                    st.markdown("🚀 A processar a sua resposta...")
+                    st.markdown(msg)
+                
                 execute_pipeline(minimap_placeholder=minimap_placeholder)
 
 with tab2:

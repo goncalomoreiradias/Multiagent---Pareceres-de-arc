@@ -8,7 +8,6 @@ from config import config
 
 def run_review(state: GraphState) -> dict:
     """Acts as the Architecture Board, reviewing the draft."""
-    print("[Reviewer Agent] Reviewing the draft assessment...")
     context = state["context"]
     
     # First, inject diagrams into the draft report for review
@@ -26,11 +25,14 @@ def run_review(state: GraphState) -> dict:
     try:
         parsed_data = json.loads(extract_json_text(response.content))
         
+        context.reviewer_approved = parsed_data.get("is_approved", False)
         context.reviewer_feedback = parsed_data.get("reviewer_feedback", [])
         
-    except Exception as e:
-        print(f"[Reviewer Agent] Error parsing JSON: {e}")
+    except Exception:
+        context.reviewer_approved = False
+        pass
         
+    context.reviewer_run_count += 1
     # Overwrite draft with the diagram-injected version
     context.draft_report_md = full_draft
     

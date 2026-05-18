@@ -11,7 +11,7 @@ from agents.architect_reasoner import run_reasoning
 from agents.architect_writer import run_writing
 from agents.diagram_agent import run_diagram_gen
 from agents.reviewer_agent import run_review
-from agents.finalizer import run_reshape, run_finalize
+from agents.finalizer import run_reshape, run_finalize, run_ai_correct
 
 from config import config
 
@@ -26,6 +26,17 @@ def question_router(state: GraphState) -> str:
 def ask_human(state: GraphState) -> dict:
     """Dummy node to represent human input collection."""
     return {"current_agent": "ask_human"}
+
+def ask_human_review(state: GraphState) -> dict:
+    """Dummy node to represent human review input collection."""
+    return {"current_agent": "ask_human_review"}
+
+def ai_corrector_router(state: GraphState) -> str:
+    """Routes based on AI reviewer approval and run count."""
+    context = state["context"]
+    if not context.reviewer_approved and context.reviewer_run_count <= 1:
+        return "ai_corrector"
+    return "ask_human_review"
 
 
 def user_feedback_router(state: GraphState) -> str:
@@ -51,9 +62,11 @@ def build_graph():
     workflow.add_node("ask_human", ask_human)
     workflow.add_node("context_builder", run_context_build)
     workflow.add_node("reasoner", run_reasoning)
-    workflow.add_node("writer", run_writing)
     workflow.add_node("diagrams", run_diagram_gen)
+    workflow.add_node("writer", run_writing)
     workflow.add_node("reviewer", run_review)
+    workflow.add_node("ai_corrector", run_ai_correct)
+    workflow.add_node("ask_human_review", ask_human_review)
     workflow.add_node("finalizer_reshape", run_reshape)
     workflow.add_node("finalizer_complete", run_finalize)
 
@@ -76,13 +89,24 @@ def build_graph():
     workflow.add_edge("ask_human", "question_agent")
 
     workflow.add_edge("context_builder", "reasoner")
-    workflow.add_edge("reasoner", "writer")
-    workflow.add_edge("writer", "diagrams")
-    workflow.add_edge("diagrams", "reviewer")
+    workflow.add_edge("reasoner", "diagrams")
+    workflow.add_edge("diagrams", "writer")
+    workflow.add_edge("writer", "reviewer")
 
-    # After reviewer, pause for human-in-the-loop feedback
+    # After reviewer, AI corrects if needed
     workflow.add_conditional_edges(
         "reviewer",
+        ai_corrector_router,
+        {
+            "ai_corrector": "ai_corrector",
+            "ask_human_review": "ask_human_review"
+        }
+    )
+    workflow.add_edge("ai_corrector", "ask_human_review")
+
+    # After human review, pause for human-in-the-loop feedback
+    workflow.add_conditional_edges(
+        "ask_human_review",
         user_feedback_router,
         {
             "finalizer_reshape": "finalizer_reshape",
@@ -90,11 +114,12 @@ def build_graph():
         }
     )
 
-    workflow.add_edge("finalizer_reshape", "finalizer_complete")
+    # If reshaping, loop back to human review
+    workflow.add_edge("finalizer_reshape", "ask_human_review")
     workflow.add_edge("finalizer_complete", END)
 
     # Use MemorySaver for checkpoints
     memory = MemorySaver()
 
-    # Interrupt BEFORE ask_human (to collect answers) and AFTER reviewer (to collect feedback)
-    return workflow.compile(checkpointer=memory, interrupt_before=["ask_human"], interrupt_after=["reviewer"])
+    # Interrupt BEFORE ask_human (to collect answers) and BEFORE ask_human_review (to collect feedback)
+    return workflow.compile(checkpointer=memory, interrupt_before=["ask_human", "ask_human_review"])

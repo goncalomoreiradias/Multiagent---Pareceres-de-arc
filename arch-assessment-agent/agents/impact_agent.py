@@ -36,7 +36,6 @@ def fuzzy_match_portfolio(raw_input: str, brief_description: str) -> str:
 
 def run_impact_analysis(state: GraphState) -> dict:
     """Identifies impacted systems using the portfolio."""
-    print("[Impact Agent] Analyzing portfolio impact...")
     context = state["context"]
     
     prompt_path = os.path.join(config.PROMPTS_DIR, "impact.md")
@@ -59,7 +58,6 @@ def run_impact_analysis(state: GraphState) -> dict:
         context.integration_points = parsed_data.get("integration_points", {})
         
     except Exception as e:
-        print(f"[Impact Agent] Error parsing JSON: {e}")
         state["error"] = f"Impact JSON parsing failed: {e}"
 
     return {

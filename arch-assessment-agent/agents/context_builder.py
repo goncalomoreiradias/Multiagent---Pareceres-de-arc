@@ -6,7 +6,6 @@ from config import config
 
 def run_context_build(state: GraphState) -> dict:
     """Consolidates all raw input and answers into structured requirements."""
-    print("[Context Builder] Consolidating requirements and constraints...")
     context = state["context"]
     
     prompt = f"""
@@ -43,8 +42,8 @@ def run_context_build(state: GraphState) -> dict:
         context.risks = parsed_data.get("risks", [])
         context.assumptions = parsed_data.get("assumptions", [])
         
-    except Exception as e:
-        print(f"[Context Builder] Error parsing JSON: {e}")
+    except Exception:
+        pass
         
     return {
         "context": context,

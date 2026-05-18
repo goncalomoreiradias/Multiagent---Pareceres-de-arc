@@ -55,6 +55,8 @@ class AssessmentContext(BaseModel):
     
     # Reviewer
     reviewer_feedback: List[Dict[str, Any]] = Field(default_factory=list, description="Feedback from the architectural review.")
+    reviewer_approved: bool = Field(default=False, description="Whether the Chief Architect approved the draft.")
+    reviewer_run_count: int = Field(default=0, description="How many times the reviewer has run.")
     
     # Final Output
     final_report_md: str = Field(default="", description="The final merged markdown report.")

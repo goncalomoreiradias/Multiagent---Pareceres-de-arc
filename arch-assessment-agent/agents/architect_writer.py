@@ -8,7 +8,6 @@ from config import config
 
 def run_writing(state: GraphState) -> dict:
     """Drafts the Parecer de Arquitetura in pt-PT."""
-    print("[Architect Writer] Drafting the Parecer de Arquitetura...")
     context = state["context"]
     
     # Generate assessment_id if not already set
@@ -29,7 +28,8 @@ def run_writing(state: GraphState) -> dict:
                                       .replace("{trade_offs}", json.dumps(context.trade_offs, ensure_ascii=False))\
                                       .replace("{impacted_systems}", json.dumps(context.impacted_systems, ensure_ascii=False))\
                                       .replace("{risks}", json.dumps(context.risks, ensure_ascii=False))\
-                                      .replace("{assumptions}", json.dumps(context.assumptions, ensure_ascii=False))
+                                      .replace("{assumptions}", json.dumps(context.assumptions, ensure_ascii=False))\
+                                      .replace("{diagrams_context}", json.dumps(context.diagrams, ensure_ascii=False))
                                       
     llm = config.get_llm("gemini_pro")
     response = llm.invoke([HumanMessage(content=formatted_prompt)])

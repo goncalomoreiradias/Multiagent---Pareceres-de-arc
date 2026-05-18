@@ -7,7 +7,8 @@ from config import config
 
 def run_intake(state: GraphState) -> dict:
     """Classifies the architectural request and extracts initial info."""
-    print("[Intake Agent] Analyzing request...")
+    # Logic follows...
+
     
     # We retrieve the raw input from the state context
     context = state["context"]

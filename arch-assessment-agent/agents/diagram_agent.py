@@ -8,7 +8,6 @@ from config import config
 
 def run_diagram_gen(state: GraphState) -> dict:
     """Generates Mermaid diagrams and ArchiMate draw.io XML."""
-    print("[Diagram Agent] Generating architectural diagrams (Mermaid + ArchiMate)...")
     context = state["context"]
     
     # Ensure assessment_id exists
@@ -46,12 +45,11 @@ def run_diagram_gen(state: GraphState) -> dict:
             drawio_path = os.path.join(diagrams_dir, f"{context.assessment_id}_capabilities.drawio")
             with open(drawio_path, "w", encoding="utf-8") as f:
                 f.write(drawio_content)
-            print(f"[Diagram Agent] ArchiMate diagram saved to: {drawio_path}")
-        else:
-            print("[Diagram Agent] Warning: capabilities_drawio is empty or invalid XML, skipping .drawio save.")
         
     except Exception as e:
-        print(f"[Diagram Agent] Error parsing JSON: {e}")
+        # Log the error to the state so we can see it in the UI if needed
+        state["error"] = f"Diagram Agent JSON error: {str(e)}"
+        pass
         
     return {
         "context": context,

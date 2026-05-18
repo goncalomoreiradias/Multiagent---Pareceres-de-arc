@@ -22,6 +22,9 @@ Impacted Systems: {impacted_systems}
 Risks: {risks}
 Assumptions: {assumptions}
 
+Contexto dos Diagramas Gerados:
+{diagrams_context}
+
 Write a professional markdown report with the following structure:
 
 # Parecer de Arquitetura: {project_name}
@@ -37,9 +40,6 @@ Include a summary table with the following fields:
 | Tipo de Pedido | {request_type} |
 | Data | (current date) |
 | Equipa | Arquitetura de Soluções |
-| Recomendação Técnica | **Abordagem Recomendada** / **Abordagem Recomendada com Condições** / **Abordagem Não Recomendada** |
-
-The "Recomendação Técnica" must be one of the three options above. This is a non-binding architectural opinion, not an approval or decision.
 
 ## 1. Contexto e Objetivos
 (Explain the business context and objectives of the project)
@@ -53,8 +53,8 @@ The "Recomendação Técnica" must be one of the three options above. This is a 
 ## 4. Arquitetura Proposta
 (Describe the recommended architecture approach — this is the team's technical opinion, not a binding decision)
 
-## 5. Justificação das Decisões (Trade-offs)
-(Explain why this approach was chosen over alternatives, presenting the analysis and trade-offs considered)
+## 5. Justificação das Decisões (Cenários e Trade-offs)
+(You MUST clearly outline the alternative scenarios or approaches that were considered. For each scenario, explain its pros and cons. Then, explicitly justify why the recommended approach was chosen over the others, detailing the criteria, analysis, and trade-offs used to reach this conclusion. The transition from considered scenarios to the final recommendation must be logical and highly detailed.)
 
 ## 6. Arquitetura de Solução
 
@@ -70,17 +70,21 @@ organizado em três camadas ArchiMate 3.2: Negócio, Aplicacional e Tecnológica
 *Figure 1 — Diagrama de Capacidades ArchiMate 3.2 — Vista de alto nível das
 capacidades de negócio, aplicacionais e tecnológicas da solução proposta.*
 
+(IMPORTANT INSTRUCTION: Immediately after the figure caption above, you MUST write a highly detailed text explanation of this ArchiMate diagram. Delineate clearly the business, application, and technology components. Explain the key elements in each layer and explicitly describe the relationships and interactions between them. Do not dive into low-level code, but ensure the conceptual and logical architecture is thoroughly explained.)
+
 ### 6.2 Diagramas de Solução
 
 <!-- DIAGRAM_PLACEHOLDER -->
 
 *Os diagramas acima representam a vista de solução: fluxos de interação (sequência) e arquitetura de componentes (flowchart).*
 
+(IMPORTANT INSTRUCTION: Immediately after the caption above, you MUST provide a detailed textual explanation for these diagrams. Explain the overall system flowchart and the sequence of interactions. Identify the main actors, systems, and how data or control flows between them.)
+
 ### 6.3 Detalhe do Fluxo Proposto
-(Describe the detailed proposed flow step by step)
+(Provide a comprehensive, step-by-step walkthrough of the proposed flow. Base this directly on the generated sequence and flowchart diagrams. Ensure that the business steps and technical transitions are super well-defined and clearly aligned with what is visually represented. The depth should reflect the complexity of the solution.)
 
 ### 6.4 Componentes Principais
-(List and describe the main components of the solution)
+(List and describe the main components of the solution identified in the diagrams. For each component, define its primary responsibility, its type (e.g., business service, application component, database, interface), and its role in the overall architecture. Ensure that both business and technical components are super well-defined, avoiding low-level implementation/code details but providing a clear structural understanding.)
 
 ### 6.5 Stack Tecnológico e Padrões
 (Describe the technology stack and architectural patterns recommended)

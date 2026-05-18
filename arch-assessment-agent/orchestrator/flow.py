@@ -39,7 +39,7 @@ def run_assessment(raw_input: str, resume: bool = False) -> str:
         # Check if we paused for human-in-the-loop
         current_state = graph.get_state(thread_config)
         
-        if current_state.next:
+        while current_state.next and current_state.next[0] == "ask_human_review":
             console.print("\n[bold cyan]Draft Assessment Generated & Reviewed![/bold cyan]")
             console.print("The reviewer agent has completed its checks. Would you like to provide any feedback?")
             
@@ -53,6 +53,8 @@ def run_assessment(raw_input: str, resume: bool = False) -> str:
             events = graph.stream(None, thread_config, stream_mode="values")
             for event in events:
                 save_checkpoint(event, checkpoint_path)
+                
+            current_state = graph.get_state(thread_config)
                 
         # Final state
         final_state = graph.get_state(thread_config).values
