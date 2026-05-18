@@ -14,6 +14,8 @@ from config import config
 
 st.set_page_config(page_title="ArchiMap Agent", page_icon="🏗️", layout="wide")
 
+# Default layout properties (removed problematic custom block-container padding)
+
 # --- Helper function to extract text from uploaded files ---
 def extract_text_from_file(uploaded_file) -> str:
     filename = uploaded_file.name.lower()
@@ -82,7 +84,21 @@ def render_minimap():
     
     html = """
     <style>
-      .workflow-container { padding: 10px; font-family: sans-serif; }
+      body { margin: 0; }
+      .workflow-container { 
+          padding: 10px; 
+          font-family: sans-serif; 
+          height: 100vh;
+          max-height: 580px;
+          overflow-y: auto; 
+          overflow-x: hidden;
+      }
+      /* Custom scrollbar for webkit */
+      .workflow-container::-webkit-scrollbar { width: 6px; }
+      .workflow-container::-webkit-scrollbar-track { background: transparent; }
+      .workflow-container::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+      .workflow-container::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+      
       .node-row { display: flex; align-items: center; margin-bottom: 20px; position: relative; }
       .node { 
           width: 40px; height: 40px; border-radius: 50%; 
@@ -369,14 +385,17 @@ with tab1:
                 render_minimap()
 
     with col_main:
-        for msg in st.session_state.messages:
-            with st.chat_message(msg["role"]):
-                st.markdown(msg["content"])
+        chat_container = st.container(height=650, border=False)
+        with chat_container:
+            for msg in st.session_state.messages:
+                with st.chat_message(msg["role"]):
+                    st.markdown(msg["content"])
                 
         if user_input := st.chat_input("Descreva o pedido ou responda às perguntas..."):
             st.session_state.messages.append({"role": "user", "content": user_input})
-            with st.chat_message("user"):
-                st.markdown(user_input)
+            with chat_container:
+                with st.chat_message("user"):
+                    st.markdown(user_input)
             
             phase = st.session_state.phase
             if phase == "idle":
@@ -388,8 +407,9 @@ with tab1:
                     full_input += docs_text
 
                 st.session_state.messages.append({"role": "assistant", "content": "🚀 Pipeline iniciado..."})
-                with st.chat_message("assistant"):
-                    st.markdown("🚀 Pipeline iniciado... (Acompanhe o estado dos agentes no painel lateral)")
+                with chat_container:
+                    with st.chat_message("assistant"):
+                        st.markdown("🚀 Pipeline iniciado... (Acompanhe o estado dos agentes no painel lateral)")
                 execute_pipeline(initial_input=full_input, minimap_placeholder=minimap_placeholder)
                 
             elif phase == "questions":
@@ -401,8 +421,9 @@ with tab1:
                 st.session_state.graph.update_state(tc, {"context": ctx})
                 
                 st.session_state.messages.append({"role": "assistant", "content": "🚀 Retomando pipeline..."})
-                with st.chat_message("assistant"):
-                    st.markdown("🚀 Retomando pipeline...")
+                with chat_container:
+                    with st.chat_message("assistant"):
+                        st.markdown("🚀 Retomando pipeline...")
                 execute_pipeline(minimap_placeholder=minimap_placeholder)
                 
             elif phase == "review":
@@ -413,8 +434,9 @@ with tab1:
                 
                 msg = "🔄 Feedback recebido. A reformular o parecer..." if feedback else "✨ Parecer aprovado! A finalizar documento..."
                 st.session_state.messages.append({"role": "assistant", "content": msg})
-                with st.chat_message("assistant"):
-                    st.markdown(msg)
+                with chat_container:
+                    with st.chat_message("assistant"):
+                        st.markdown(msg)
                 
                 execute_pipeline(minimap_placeholder=minimap_placeholder)
 

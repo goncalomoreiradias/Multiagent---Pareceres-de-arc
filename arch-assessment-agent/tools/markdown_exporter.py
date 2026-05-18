@@ -17,8 +17,7 @@ def inject_diagrams(report_md: str, diagrams: Dict[str, str]) -> str:
     if "flowchart" in diagrams and diagrams["flowchart"]:
         diagram_blocks.append("### Diagrama de Arquitetura (Flowchart)\n```mermaid\n" + diagrams["flowchart"].strip() + "\n```")
         
-    if "capabilities_drawio" in diagrams and diagrams["capabilities_drawio"]:
-        diagram_blocks.append("### Modelo ArchiMate (Draw.io)\nO modelo ArchiMate (XML) foi gerado e está disponível para importação no Draw.io.")
+    # capabilities_drawio references are hardcoded in the writer prompt section 6.1
 
     combined_diagrams = "\n\n".join(diagram_blocks)
     
