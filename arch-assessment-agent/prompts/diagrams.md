@@ -14,9 +14,12 @@ Technical Constraints: {technical_constraints}
 
 Provide your output as a JSON object:
 {
-  "sequence_diagram": "mermaid code for sequence diagram",
-  "flowchart": "mermaid code for flowchart",
-  "capabilities_drawio": "<mxfile>...</mxfile>"
+  "sequence_diagram": "mermaid code for sequence diagram (without code fences)",
+  "sequence_explanation": "a detailed, conceptual, and logical explanation of the sequence flow in pt-PT (Português de Portugal) explaining actors, key messages, and security patterns.",
+  "flowchart": "mermaid code for flowchart (without code fences)",
+  "flowchart_explanation": "a detailed, conceptual, and logical explanation of the system architecture blocks and integration channels in pt-PT (Português de Portugal).",
+  "capabilities_drawio": "raw draw.io XML with ArchiMate 3.2 elements (starting with <mxfile and ending with </mxfile>)",
+  "capabilities_explanation": "a detailed, conceptual, and logical explanation of the ArchiMate capabilities layout, grouping elements by layers (Negócio, Aplicacional, Tecnológico) and highlighting relationships in pt-PT (Português de Portugal)."
 }
 
 ---

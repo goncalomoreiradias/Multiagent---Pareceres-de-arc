@@ -29,7 +29,7 @@ def run_diagram_gen(state: GraphState) -> dict:
         selected_str = ", ".join(context.selected_diagrams)
         diagrams_instruction = (
             f"\n\nCRITICAL: The user has selected only the following diagram types to generate: {selected_str}.\n"
-            "Generate ONLY the requested diagrams. For any diagram type that is NOT selected, you MUST return an empty string (\"\") as its value in the JSON response."
+            "Generate ONLY the requested diagrams. For any diagram type that is NOT selected, you MUST return an empty string (\"\") as its value in the JSON response (both for the diagram code/xml and its corresponding explanation field)."
         )
         formatted_prompt += diagrams_instruction
                                       
@@ -41,8 +41,11 @@ def run_diagram_gen(state: GraphState) -> dict:
         
         context.diagrams = {
             "sequence_diagram": parsed_data.get("sequence_diagram", ""),
+            "sequence_explanation": parsed_data.get("sequence_explanation", ""),
             "flowchart": parsed_data.get("flowchart", ""),
-            "capabilities_drawio": parsed_data.get("capabilities_drawio", "")
+            "flowchart_explanation": parsed_data.get("flowchart_explanation", ""),
+            "capabilities_drawio": parsed_data.get("capabilities_drawio", ""),
+            "capabilities_explanation": parsed_data.get("capabilities_explanation", "")
         }
         
         # Save the .drawio file to disk
@@ -56,7 +59,7 @@ def run_diagram_gen(state: GraphState) -> dict:
         
         # Inject diagrams into draft_report_md
         from tools.markdown_exporter import inject_diagrams
-        context.draft_report_md = inject_diagrams(context.draft_report_md, context.diagrams)
+        context.draft_report_md = inject_diagrams(context.draft_report_md, context.diagrams, context.assessment_id)
         
     except Exception as e:
         # Log the error to the state so we can see it in the UI if needed

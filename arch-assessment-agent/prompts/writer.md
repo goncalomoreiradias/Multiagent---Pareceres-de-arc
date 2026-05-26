@@ -99,6 +99,7 @@ REGRAS OBRIGATÓRIAS DE OUTPUT
 - NUNCA uses: "aprovado", "não aprovado", "aprovação", "rejeitado", "fica aprovado", "aprovação condicionada", "a equipa decide".
 - USA SEMPRE: "a equipa considera", "a análise indica", "do ponto de vista arquitetural", "a opinião da equipa é", "recomenda-se", "sugere-se", "a abordagem preferencial seria", "considera-se adequado".
 - As conclusões devem ser puramente analíticas e opinativas, sem assumir uma autoridade vinculativa.
+- **Cenário Único Recomendado:** Não deves mencionar referências a números de opções ou cenários de estudo (por exemplo, "Opção 3" ou "Cenário 3") no corpo do parecer. Descreve a solução diretamente como a arquitetura proposta e recomendada pela equipa, sem fazer alusão a caminhos não selecionados ou a listas de opções abstratas.
 
 3) **ESTRUTURA OBRIGATÓRIA DO PARECER**
 O parecer gerado deve respeitar exatamente a seguinte estrutura e títulos de secção em Markdown:
@@ -136,7 +137,8 @@ Identificar objetivamente:
 ## 3. High Level Design
 
 ### Sumário Executivo
-Breve resumo da abordagem proposta em formato genérico e a seguinte tabela:
+
+Apresenta obrigatoriamente a seguinte tabela preenchida com os dados do parecer no início desta secção, antes de qualquer texto explicativo:
 
 | Campo | Valor |
 |---|---|
@@ -145,6 +147,8 @@ Breve resumo da abordagem proposta em formato genérico e a seguinte tabela:
 | Tipo de Pedido / Faseamento | {request_type} |
 | Data | (Insere a data atual do sistema) |
 | Equipa | Arquitetura de Soluções |
+
+Imediatamente a seguir à tabela, escreve um breve resumo da abordagem proposta em formato genérico (1 a 2 parágrafos).
 
 ### Solution Design
 Descrever detalhadamente a solução arquitetural recomendada:
@@ -181,25 +185,6 @@ Preenche com os componentes concretos da solução (ex.: BFF, Apigee, Mainframe,
 
 #### 3.3. Padrões de arquitetura aplicados
 Listar e explicar os padrões arquiteturais aplicados à solução proposta (ex: ODL, API Façade/Domain API, Canonical Data Model, EDA/CDC-ready, CQRS implícito, Anti-Corruption Layer, Zero Trust, Observability by Design, etc.).
-
-#### 3.4. Diagrama de Capacidades (ArchiMate 3.2)
-O diagrama seguinte representa a vista de capacidades da solução proposta, organizado em três camadas ArchiMate 3.2: Negócio, Aplicacional e Tecnológica.
-
-> **Diagrama de Capacidades (ArchiMate 3.2)**
-> Ficheiro: `{assessment_id}_capabilities.drawio`
-> Abrir com [draw.io](https://app.diagrams.net) ou extensão draw.io no VS Code.
-
-*Figure 1 — Diagrama de Capacidades ArchiMate 3.2 — Vista de alto nível das capacidades de negócio, aplicacionais e tecnológicas da solução proposta.*
-
-Escreve uma explicação de texto altamente detalhada deste diagrama ArchiMate. Delineia claramente as componentes de negócio, aplicacionais e tecnológicas. Explica os elementos-chave em cada camada e descreve explicitamente as relações e interações entre eles.
-
-#### 3.5. Diagramas de Solução
-
-<!-- DIAGRAM_PLACEHOLDER -->
-
-*Os diagramas acima representam a vista de solução: fluxos de interação (sequência) e arquitetura de componentes (flowchart).*
-
-Escreve uma explicação de texto altamente detalhada destes diagramas. Explica o fluxo global do sistema (flowchart) e a sequência de interações. Identifica os principais atores, sistemas e como os dados ou controlo fluem entre eles.
 
 ## 4. Conclusão e Recomendação
 Aderência da solução aos padrões corporativos, recomendações numeradas e fundamentadas, e elementos de decisão em aberto (em tabela comparando opções e recomendando a melhor alternativa).

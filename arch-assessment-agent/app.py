@@ -14,7 +14,43 @@ from config import config
 
 st.set_page_config(page_title="ArchiMap Agent", page_icon="🏗️", layout="wide")
 
-# Default layout properties (removed problematic custom block-container padding)
+# CSS to make the layout fixed/reactive on any screen without nested page scrolls
+st.markdown("""
+<style>
+    /* Hide outer page scrollbar and fix viewport */
+    html, body, [data-testid="stAppViewContainer"] {
+        overflow: hidden !important;
+        height: 100vh;
+    }
+    
+    /* Adjust container padding to prevent layout overflow */
+    [data-testid="stAppViewBlockContainer"] {
+        padding-top: 1.5rem !important;
+        padding-bottom: 1rem !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+        max-height: 100vh;
+        overflow: hidden;
+    }
+    
+    /* Columns individually scroll when content overflows */
+    div[data-testid="stColumn"] {
+        max-height: 82vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 5px;
+    }
+    
+    /* Webkit scrollbar customization for columns */
+    div[data-testid="stColumn"]::-webkit-scrollbar {
+        width: 4px;
+    }
+    div[data-testid="stColumn"]::-webkit-scrollbar-thumb {
+        background-color: rgba(0,0,0,0.1);
+        border-radius: 4px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # --- Helper function to extract text from uploaded files ---
 def extract_text_from_file(uploaded_file) -> str:
@@ -89,7 +125,7 @@ def render_minimap():
           padding: 10px; 
           font-family: sans-serif; 
           height: 100vh;
-          max-height: 580px;
+          max-height: 350px;
           overflow-y: auto; 
           overflow-x: hidden;
       }
@@ -197,7 +233,7 @@ def render_minimap():
         """
     
     html += "</div>"
-    components.html(html, height=600)
+    components.html(html, height=380)
 
 
 # --- Core pipeline execution ---
@@ -389,7 +425,7 @@ with tab1:
                 render_minimap()
 
     with col_main:
-        chat_container = st.container(height=650, border=False)
+        chat_container = st.container(height=480, border=False)
         with chat_container:
             for msg in st.session_state.messages:
                 with st.chat_message(msg["role"]):

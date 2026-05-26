@@ -82,12 +82,12 @@ def run_test():
     # TASK 3 CHECKS: Section structure
     has_3_4 = "3.4" in draft
     has_3_5 = "3.5" in draft
-    if has_3_4 and has_3_5:
-        print("  PASS: Section 3.4 and 3.5 found")
-        results.append(("Section 3 structure", True))
+    if not has_3_4 and not has_3_5:
+        print("  PASS: Section 3.4 and 3.5 are NOT in initial draft (correct)")
+        results.append(("Section 3 structure initial", True))
     else:
-        print(f"  FAIL: 3.4={has_3_4}, 3.5={has_3_5}")
-        results.append(("Section 3 structure", False))
+        print(f"  FAIL: 3.4={has_3_4}, 3.5={has_3_5} found in initial draft")
+        results.append(("Section 3 structure initial", False))
 
     # Disclaimer check
     if "não constitui um documento de aprovação ou decisão vinculativa" in draft:
@@ -160,9 +160,23 @@ def run_test():
     if os.path.exists(output_path):
         print(f"  PASS: Report file exists ({os.path.getsize(output_path)} bytes)")
         results.append(("Final report saved", True))
+        
+        with open(output_path, "r", encoding="utf-8") as f:
+            final_content = f.read()
+            
+        has_3_4_final = "3.4" in final_content
+        has_3_5_final = "3.5" in final_content
+        
+        if has_3_4_final and has_3_5_final:
+            print("  PASS: Section 3.4 and 3.5 found in final report")
+            results.append(("Final report structure", True))
+        else:
+            print(f"  FAIL: 3.4={has_3_4_final}, 3.5={has_3_5_final} in final report")
+            results.append(("Final report structure", False))
     else:
         print(f"  FAIL: Report file not found")
         results.append(("Final report saved", False))
+        results.append(("Final report structure", False))
 
     # Summary
     print("\n" + "=" * 60)
