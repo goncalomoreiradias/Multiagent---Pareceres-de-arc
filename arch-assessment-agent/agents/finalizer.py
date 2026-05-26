@@ -15,6 +15,8 @@ def run_ai_correct(state: GraphState) -> dict:
     Revise the following Architecture Assessment Report based on the Chief Architect's reviewer feedback.
     You must address the reported issues. Ensure the final output is in pt-PT and properly formatted in Markdown.
     
+    CRITICAL: You must preserve any HTML comments or placeholders like `<!-- DIAGRAM_PLACEHOLDER -->` exactly as they are in the text. Do not remove or replace them.
+    
     Current Draft:
     {context.draft_report_md}
     
@@ -43,6 +45,8 @@ def run_reshape(state: GraphState) -> dict:
     You are an expert Enterprise Architect Editor.
     Revise the following Architecture Assessment Report based on the user's feedback.
     Ensure the final output is in pt-PT and properly formatted in Markdown.
+    
+    CRITICAL: You must preserve any HTML comments or placeholders like `<!-- DIAGRAM_PLACEHOLDER -->` exactly as they are in the text. Do not remove or replace them.
     
     Current Draft:
     {context.draft_report_md}

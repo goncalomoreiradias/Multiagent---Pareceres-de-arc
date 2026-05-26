@@ -52,6 +52,7 @@ class AssessmentContext(BaseModel):
     # Writer and Diagram Output
     draft_report_md: str = Field(default="", description="The draft markdown report.")
     diagrams: Dict[str, str] = Field(default_factory=dict, description="Mermaid diagrams and draw.io XML generated.")
+    selected_diagrams: List[str] = Field(default_factory=list, description="List of diagrams selected by the user to generate.")
     
     # Reviewer
     reviewer_feedback: List[Dict[str, Any]] = Field(default_factory=list, description="Feedback from the architectural review.")

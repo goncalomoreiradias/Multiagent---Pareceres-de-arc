@@ -80,14 +80,14 @@ def run_test():
         results.append(("No approval language", True))
 
     # TASK 3 CHECKS: Section structure
-    has_6_1 = "6.1" in draft
-    has_6_2 = "6.2" in draft
-    if has_6_1 and has_6_2:
-        print("  PASS: Section 6.1 and 6.2 found")
-        results.append(("Section 6 structure", True))
+    has_3_4 = "3.4" in draft
+    has_3_5 = "3.5" in draft
+    if has_3_4 and has_3_5:
+        print("  PASS: Section 3.4 and 3.5 found")
+        results.append(("Section 3 structure", True))
     else:
-        print(f"  FAIL: 6.1={has_6_1}, 6.2={has_6_2}")
-        results.append(("Section 6 structure", False))
+        print(f"  FAIL: 3.4={has_3_4}, 3.5={has_3_5}")
+        results.append(("Section 3 structure", False))
 
     # Disclaimer check
     if "não constitui um documento de aprovação ou decisão vinculativa" in draft:
@@ -105,10 +105,21 @@ def run_test():
         print("  WARNING: New recommendation terminology not found")
         results.append(("Recommendation terminology", False))
 
-    # 4. Diagram Agent
+    # 4. Reviewer
     print("\n" + "=" * 60)
-    print("STAGE 4: Diagram Agent")
+    print("STAGE 4: Reviewer Agent")
     print("=" * 60)
+    from agents.reviewer_agent import run_review
+    result = run_review(state)
+    state["context"] = result["context"]
+    print(f"  Feedback items: {len(state['context'].reviewer_feedback)}")
+    results.append(("Reviewer", True))
+
+    # 5. Diagram Agent
+    print("\n" + "=" * 60)
+    print("STAGE 5: Diagram Agent")
+    print("=" * 60)
+    state["context"].selected_diagrams = ["Sequence", "Archimate 3.2", "Flowchart"]
     from agents.diagram_agent import run_diagram_gen
     result = run_diagram_gen(state)
     state["context"] = result["context"]
@@ -136,16 +147,6 @@ def run_test():
     else:
         print(f"  WARNING: .drawio file not found at {drawio_path}")
         results.append(("DrawIO file saved", False))
-
-    # 5. Reviewer
-    print("\n" + "=" * 60)
-    print("STAGE 5: Reviewer Agent")
-    print("=" * 60)
-    from agents.reviewer_agent import run_review
-    result = run_review(state)
-    state["context"] = result["context"]
-    print(f"  Feedback items: {len(state['context'].reviewer_feedback)}")
-    results.append(("Reviewer", True))
 
     # 6. Finalizer
     print("\n" + "=" * 60)

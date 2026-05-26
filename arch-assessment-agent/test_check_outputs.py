@@ -31,7 +31,7 @@ if report_files:
     print(f"  Size: {len(content)} chars")
     
     # Check sections
-    for section in ["6.1", "6.2", "6.3", "6.4", "6.5", "7.", "8."]:
+    for section in ["3.1", "3.2", "3.3", "3.4", "3.5", "4.1", "4.2", "4.3", "4.4"]:
         found = section in content
         print(f"  Section {section}: {'FOUND' if found else 'MISSING'}")
     

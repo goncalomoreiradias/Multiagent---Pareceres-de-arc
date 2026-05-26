@@ -29,4 +29,10 @@ def inject_diagrams(report_md: str, diagrams: Dict[str, str]) -> str:
         if combined_diagrams:
             report_md += "\n\n## Diagramas de Solução\n\n" + combined_diagrams
         
+    # If ArchiMate 3.2 is not generated, strip its section 3.4
+    if "capabilities_drawio" not in diagrams or not diagrams["capabilities_drawio"]:
+        import re
+        pattern = r"####\s*3\.4\s*.*?(?=####\s*3\.5)"
+        report_md = re.sub(pattern, "", report_md, flags=re.DOTALL | re.IGNORECASE)
+        
     return report_md

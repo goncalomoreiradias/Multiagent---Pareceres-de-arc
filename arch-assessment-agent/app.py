@@ -70,11 +70,11 @@ AGENT_SEQUENCE = [
     ("question_agent", "Questões", "❓"),
     ("context_builder", "Contexto", "🧩"),
     ("architect_reasoner", "Raciocínio", "🧠"),
-    ("diagram_agent", "Diagramas", "📊"),
     ("architect_writer", "Escrita", "✍️"),
     ("reviewer_agent", "Review do AI", "🧐"),
     ("ai_corrector", "Auto Correção", "🛠️"),
     ("finalizer_reshape", "Loop Utilizador", "🔄"),
+    ("diagram_agent", "Diagramas", "📊"),
     ("finalizer_complete", "Finalização", "✅")
 ]
 
@@ -226,8 +226,8 @@ def execute_pipeline(initial_input: str = None, minimap_placeholder=None):
             user_feedback = st.session_state.graph.get_state(tc).values.get("user_feedback", "")
             if user_feedback:
                 st.session_state.agent_status["finalizer_reshape"] = "running"
-            else:
-                st.session_state.agent_status["finalizer_complete"] = "running"
+        elif st.session_state.phase == "diagram_selection":
+            st.session_state.agent_status["diagram_agent"] = "running"
 
     st.session_state.phase = "running"
 
@@ -253,7 +253,7 @@ def execute_pipeline(initial_input: str = None, minimap_placeholder=None):
                     agent = event.get("current_agent", "")
                     
                     # We ignore init events and pause nodes
-                    if not agent or agent == "init" or agent in ["ask_human", "ask_human_review"]:
+                    if not agent or agent == "init" or agent in ["ask_human", "ask_human_review", "ask_diagrams"]:
                         continue
 
                     # Mark agent as done and save metrics
@@ -299,7 +299,7 @@ def execute_pipeline(initial_input: str = None, minimap_placeholder=None):
                 
         if gs.next:
             next_node = gs.next[0]
-            if next_node not in ["ask_human", "ask_human_review"]:
+            if next_node not in ["ask_human", "ask_human_review", "ask_diagrams"]:
                 st.session_state.agent_status[next_node] = "running"
 
         # Final UI update
@@ -344,6 +344,10 @@ def execute_pipeline(initial_input: str = None, minimap_placeholder=None):
                 st.session_state.phase = "review"
                 draft_preview = ctx.draft_report_md
                 st.session_state.messages.append({"role": "assistant", "content": f"📝 **Draft gerado!** Analise o parecer e dê aprovação ('ok') ou indique correções.\n\n---\n\n{draft_preview}"})
+                
+            elif next_node == "ask_diagrams":
+                st.session_state.phase = "diagram_selection"
+                st.session_state.messages.append({"role": "assistant", "content": "🎯 **Texto do parecer aprovado!** Por favor, escolha os diagramas que deseja gerar no formulário abaixo:"})
         else:
             st.session_state.phase = "done"
             if ctx and ctx.output_file_path:
@@ -391,7 +395,45 @@ with tab1:
                 with st.chat_message(msg["role"]):
                     st.markdown(msg["content"])
                 
-        if user_input := st.chat_input("Descreva o pedido ou responda às perguntas..."):
+        # Diagram selection UI when in diagram_selection phase
+        if st.session_state.phase == "diagram_selection":
+            with st.container(border=True):
+                st.subheader("📊 Seleção de Diagramas")
+                st.markdown("Escolha os diagramas que pretende gerar e inserir no parecer de arquitetura:")
+                
+                # Checkboxes for each diagram
+                gen_seq = st.checkbox("Diagrama de Sequência (Mermaid)", value=True, key="cb_seq")
+                gen_archimate = st.checkbox("Diagrama de Capacidades ArchiMate 3.2 (draw.io)", value=True, key="cb_arch")
+                gen_flowchart = st.checkbox("Diagrama de Arquitetura / Flowchart (Mermaid)", value=True, key="cb_flow")
+                
+                if st.button("Gerar Diagramas e Finalizar", use_container_width=True):
+                    # Collect selected diagrams
+                    selected = []
+                    if gen_seq:
+                        selected.append("Sequence")
+                    if gen_archimate:
+                        selected.append("Archimate 3.2")
+                    if gen_flowchart:
+                        selected.append("Flowchart")
+                        
+                    # Update graph state
+                    tc = st.session_state.thread_config
+                    gs = st.session_state.graph.get_state(tc)
+                    ctx = gs.values["context"]
+                    ctx.selected_diagrams = selected
+                    st.session_state.graph.update_state(tc, {"context": ctx})
+                    
+                    # Log selected diagrams to chat
+                    selected_display = ", ".join(selected) if selected else "Nenhum"
+                    st.session_state.messages.append({"role": "user", "content": f"Selecionado para gerar: {selected_display}"})
+                    st.session_state.messages.append({"role": "assistant", "content": "⚙️ A gerar diagramas selecionados e a construir parecer final..."})
+                    
+                    st.session_state.agent_status["diagram_agent"] = "running"
+                    
+                    execute_pipeline(minimap_placeholder=minimap_placeholder)
+                
+        is_chat_disabled = st.session_state.phase in ["running", "diagram_selection"]
+        if user_input := st.chat_input("Descreva o pedido ou responda às perguntas...", disabled=is_chat_disabled):
             st.session_state.messages.append({"role": "user", "content": user_input})
             with chat_container:
                 with st.chat_message("user"):
@@ -432,7 +474,7 @@ with tab1:
                 feedback = "" if user_input.strip().lower() in ["ok", "sim", "yes", "aprovar", "aprovado"] else user_input
                 st.session_state.graph.update_state(tc, {"user_feedback": feedback})
                 
-                msg = "🔄 Feedback recebido. A reformular o parecer..." if feedback else "✨ Parecer aprovado! A finalizar documento..."
+                msg = "🔄 Feedback recebido. A reformular o parecer..." if feedback else "✨ Parecer aprovado! A selecionar diagramas..."
                 st.session_state.messages.append({"role": "assistant", "content": msg})
                 with chat_container:
                     with st.chat_message("assistant"):

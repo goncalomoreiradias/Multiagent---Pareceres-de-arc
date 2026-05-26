@@ -25,6 +25,14 @@ def run_diagram_gen(state: GraphState) -> dict:
                                       .replace("{business_requirements}", json.dumps(context.business_requirements, ensure_ascii=False))\
                                       .replace("{technical_constraints}", json.dumps(context.technical_constraints, ensure_ascii=False))
                                       
+    if hasattr(context, "selected_diagrams") and context.selected_diagrams:
+        selected_str = ", ".join(context.selected_diagrams)
+        diagrams_instruction = (
+            f"\n\nCRITICAL: The user has selected only the following diagram types to generate: {selected_str}.\n"
+            "Generate ONLY the requested diagrams. For any diagram type that is NOT selected, you MUST return an empty string (\"\") as its value in the JSON response."
+        )
+        formatted_prompt += diagrams_instruction
+                                      
     llm = config.get_llm("gemini_pro")
     response = llm.invoke([HumanMessage(content=formatted_prompt)])
     
@@ -45,6 +53,10 @@ def run_diagram_gen(state: GraphState) -> dict:
             drawio_path = os.path.join(diagrams_dir, f"{context.assessment_id}_capabilities.drawio")
             with open(drawio_path, "w", encoding="utf-8") as f:
                 f.write(drawio_content)
+        
+        # Inject diagrams into draft_report_md
+        from tools.markdown_exporter import inject_diagrams
+        context.draft_report_md = inject_diagrams(context.draft_report_md, context.diagrams)
         
     except Exception as e:
         # Log the error to the state so we can see it in the UI if needed

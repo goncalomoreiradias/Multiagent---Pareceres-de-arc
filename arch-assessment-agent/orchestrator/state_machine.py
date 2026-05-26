@@ -31,6 +31,10 @@ def ask_human_review(state: GraphState) -> dict:
     """Dummy node to represent human review input collection."""
     return {"current_agent": "ask_human_review"}
 
+def ask_diagrams(state: GraphState) -> dict:
+    """Dummy node to represent diagram selection collection."""
+    return {"current_agent": "ask_diagrams"}
+
 def ai_corrector_router(state: GraphState) -> str:
     """Routes based on AI reviewer approval and run count."""
     context = state["context"]
@@ -48,7 +52,7 @@ def user_feedback_router(state: GraphState) -> str:
     user_feedback = str(user_feedback or "")
     if user_feedback.strip() != "":
         return "finalizer_reshape"
-    return "finalizer_complete"
+    return "ask_diagrams"
 
 
 def build_graph():
@@ -67,6 +71,7 @@ def build_graph():
     workflow.add_node("reviewer", run_review)
     workflow.add_node("ai_corrector", run_ai_correct)
     workflow.add_node("ask_human_review", ask_human_review)
+    workflow.add_node("ask_diagrams", ask_diagrams)
     workflow.add_node("finalizer_reshape", run_reshape)
     workflow.add_node("finalizer_complete", run_finalize)
 
@@ -89,8 +94,7 @@ def build_graph():
     workflow.add_edge("ask_human", "question_agent")
 
     workflow.add_edge("context_builder", "reasoner")
-    workflow.add_edge("reasoner", "diagrams")
-    workflow.add_edge("diagrams", "writer")
+    workflow.add_edge("reasoner", "writer")
     workflow.add_edge("writer", "reviewer")
 
     # After reviewer, AI corrects if needed
@@ -110,16 +114,22 @@ def build_graph():
         user_feedback_router,
         {
             "finalizer_reshape": "finalizer_reshape",
-            "finalizer_complete": "finalizer_complete"
+            "ask_diagrams": "ask_diagrams"
         }
     )
 
     # If reshaping, loop back to human review
     workflow.add_edge("finalizer_reshape", "ask_human_review")
+    
+    # From diagram selection, proceed to diagrams generation
+    workflow.add_edge("ask_diagrams", "diagrams")
+    
+    # From diagrams, proceed to finalizer_complete to write files
+    workflow.add_edge("diagrams", "finalizer_complete")
     workflow.add_edge("finalizer_complete", END)
 
     # Use MemorySaver for checkpoints
     memory = MemorySaver()
 
-    # Interrupt BEFORE ask_human (to collect answers) and BEFORE ask_human_review (to collect feedback)
-    return workflow.compile(checkpointer=memory, interrupt_before=["ask_human", "ask_human_review"])
+    # Interrupt BEFORE ask_human, ask_human_review and ask_diagrams
+    return workflow.compile(checkpointer=memory, interrupt_before=["ask_human", "ask_human_review", "ask_diagrams"])
