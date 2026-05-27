@@ -79,14 +79,14 @@ def run_test():
         print("  PASS: No approval language found")
         results.append(("No approval language", True))
 
-    # TASK 3 CHECKS: Section structure
-    has_3_4 = "3.4" in draft
-    has_3_5 = "3.5" in draft
-    if not has_3_4 and not has_3_5:
-        print("  PASS: Section 3.4 and 3.5 are NOT in initial draft (correct)")
+    # TASK 3 CHECKS: Placeholders structure
+    has_archimate_placeholder = "ARCHIMATE_PLACEHOLDER" in draft
+    has_sequence_placeholder = "SEQUENCE_PLACEHOLDER" in draft
+    if has_archimate_placeholder and has_sequence_placeholder:
+        print("  PASS: Placeholders for ArchiMate and Sequence are in initial draft (correct)")
         results.append(("Section 3 structure initial", True))
     else:
-        print(f"  FAIL: 3.4={has_3_4}, 3.5={has_3_5} found in initial draft")
+        print(f"  FAIL: archimate_placeholder={has_archimate_placeholder}, sequence_placeholder={has_sequence_placeholder} in initial draft")
         results.append(("Section 3 structure initial", False))
 
     # Disclaimer check
@@ -98,26 +98,18 @@ def run_test():
         results.append(("Disclaimer", False))
 
     # Recommendation terminology check
-    if "Abordagem Recomendada" in draft or "Abordagem Não Recomendada" in draft:
+    expected_terms = ["a abordagem preferencial seria", "a equipa considera", "do ponto de vista arquitetural", "a opinião da equipa é"]
+    found_term = any(term in draft.lower() for term in expected_terms)
+    if found_term:
         print("  PASS: New recommendation terminology found")
         results.append(("Recommendation terminology", True))
     else:
         print("  WARNING: New recommendation terminology not found")
         results.append(("Recommendation terminology", False))
 
-    # 4. Reviewer
+    # 4. Diagram Agent
     print("\n" + "=" * 60)
-    print("STAGE 4: Reviewer Agent")
-    print("=" * 60)
-    from agents.reviewer_agent import run_review
-    result = run_review(state)
-    state["context"] = result["context"]
-    print(f"  Feedback items: {len(state['context'].reviewer_feedback)}")
-    results.append(("Reviewer", True))
-
-    # 5. Diagram Agent
-    print("\n" + "=" * 60)
-    print("STAGE 5: Diagram Agent")
+    print("STAGE 4: Diagram Agent")
     print("=" * 60)
     state["context"].selected_diagrams = ["Sequence", "Archimate 3.2", "Flowchart"]
     from agents.diagram_agent import run_diagram_gen
@@ -148,6 +140,16 @@ def run_test():
         print(f"  WARNING: .drawio file not found at {drawio_path}")
         results.append(("DrawIO file saved", False))
 
+    # 5. Reviewer
+    print("\n" + "=" * 60)
+    print("STAGE 5: Reviewer Agent")
+    print("=" * 60)
+    from agents.reviewer_agent import run_review
+    result = run_review(state)
+    state["context"] = result["context"]
+    print(f"  Feedback items: {len(state['context'].reviewer_feedback)}")
+    results.append(("Reviewer", True))
+
     # 6. Finalizer
     print("\n" + "=" * 60)
     print("STAGE 6: Finalizer")
@@ -164,14 +166,15 @@ def run_test():
         with open(output_path, "r", encoding="utf-8") as f:
             final_content = f.read()
             
-        has_3_4_final = "3.4" in final_content
-        has_3_5_final = "3.5" in final_content
+        has_diagrams_injected = "ARCHIMATE_PLACEHOLDER" not in final_content and "SEQUENCE_PLACEHOLDER" not in final_content
+        has_archimate_section = "Diagrama de Capacidades (ArchiMate 3.2)" in final_content
+        has_sequence_section = "sequenceDiagram" in final_content
         
-        if has_3_4_final and has_3_5_final:
-            print("  PASS: Section 3.4 and 3.5 found in final report")
+        if has_diagrams_injected and has_archimate_section and has_sequence_section:
+            print("  PASS: Diagrams injected and placeholders replaced in final report")
             results.append(("Final report structure", True))
         else:
-            print(f"  FAIL: 3.4={has_3_4_final}, 3.5={has_3_5_final} in final report")
+            print(f"  FAIL: diagrams_injected={has_diagrams_injected}, archimate={has_archimate_section}, sequence={has_sequence_section}")
             results.append(("Final report structure", False))
     else:
         print(f"  FAIL: Report file not found")

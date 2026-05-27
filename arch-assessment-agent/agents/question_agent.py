@@ -29,7 +29,29 @@ def run_question_loop(state: GraphState) -> dict:
 
     # Check if the user explicitly asked to advance
     last_input = context.raw_input.split("\n\n")[-1].lower()
-    if any(cmd in last_input for cmd in ["user answer: avançar", "user answer: avanca", "user answer: advance", "user answer: pular"]):
+    
+    # Extract and normalize the user's response to check for skip commands
+    import unicodedata
+    def clean_and_normalize(text):
+        normalized = "".join(
+            c for c in unicodedata.normalize('NFD', text.lower())
+            if unicodedata.category(c) != 'Mn'
+        )
+        return normalized.strip("] \n\r\t.")
+
+    user_ans = ""
+    if "[resposta:" in last_input:
+        parts = last_input.split("[resposta:")
+        if len(parts) > 1:
+            user_ans = clean_and_normalize(parts[-1])
+    elif "user answer:" in last_input:
+        parts = last_input.split("user answer:")
+        if len(parts) > 1:
+            user_ans = clean_and_normalize(parts[-1])
+    else:
+        user_ans = clean_and_normalize(last_input)
+
+    if user_ans in ["avancar", "avanca", "advance", "pular", "skip", "next"]:
         context.context_confidence = 1.0
         return {"context": context, "current_agent": "question_agent"}
 

@@ -105,6 +105,15 @@ REGRAS OBRIGATÓRIAS DE OUTPUT
 O parecer gerado deve respeitar exatamente a seguinte estrutura e títulos de secção em Markdown:
 
 # Parecer de Arquitetura: {project_name}
+Apresenta obrigatoriamente a seguinte tabela preenchida com os dados do parecer no início desta secção, antes de qualquer texto explicativo:
+
+| Campo | Valor |
+|---|---|
+| ID do Parecer | {assessment_id} |
+| Projeto | {project_name} |
+| Tipo de Pedido / Faseamento | {request_type} |
+| Data | (Insere a data atual do sistema) |
+| Equipa | Arquitetura de Soluções |
 
 ## 1. Overview
 Descrição genérica do âmbito e objetivo do parecer, sem detalhes técnicos da solução final.
@@ -138,24 +147,27 @@ Identificar objetivamente:
 
 ### Sumário Executivo
 
-Apresenta obrigatoriamente a seguinte tabela preenchida com os dados do parecer no início desta secção, antes de qualquer texto explicativo:
-
-| Campo | Valor |
-|---|---|
-| ID do Parecer | {assessment_id} |
-| Projeto | {project_name} |
-| Tipo de Pedido / Faseamento | {request_type} |
-| Data | (Insere a data atual do sistema) |
-| Equipa | Arquitetura de Soluções |
-
-Imediatamente a seguir à tabela, escreve um breve resumo da abordagem proposta em formato genérico (1 a 2 parágrafos).
+Escreve um breve resumo da abordagem proposta em formato genérico (2 a 3 parágrafos).
 
 ### Solution Design
 Descrever detalhadamente a solução arquitetural recomendada:
 - **Enquadramento:** Princípios estruturantes aplicados à solução.
-- **Modelo de Identidade e Propagação de Contexto:** Como a identidade do cliente final (Ping) ou utilizador interno (Azure AD) é validada e propagada na cadeia (token bridging, payload opaco, etc.), mTLS, client credentials no Apigee.
+- **Modelo de Identidade e Propagação de Contexto:** Como a identidade do cliente final (Ping) ou utilizador interno (EntraID) é validada e propagada na cadeia (token bridging, payload opaco, etc.), mTLS, client credentials no Apigee.
 - **Fluxo Lógico Proposto:** Passo-a-passo detalhado do fluxo recomendado em bullets numerados.
-- **Vantagens da Solução Proposta:** Tabela detalhada comparando por dimensões (ex: Performance, Custo, Segurança, Desacoplamento).
+
+Após o Fluxo Lógico Proposto, deves incluir obrigatoriamente o seguinte placeholder literal para o diagrama ArchiMate 3.2:
+<!-- ARCHIMATE_PLACEHOLDER -->
+
+#### Diagrama de Sequência e Detalhe End-to-End
+Explica detalhadamente os fluxos e pormenores de integração end-to-end, e insere obrigatoriamente o seguinte placeholder literal para o diagrama de sequência:
+<!-- SEQUENCE_PLACEHOLDER -->
+
+#### Diagrama de Arquitetura de Componentes
+Explica detalhadamente a arquitetura física/lógica de blocos e insere obrigatoriamente o seguinte placeholder literal para o diagrama de fluxo/arquitetura:
+<!-- FLOWCHART_PLACEHOLDER -->
+
+#### Vantagens da Solução Proposta
+Tabela detalhada comparando por dimensões (ex: Performance, Custo, Segurança, Desacoplamento).
 
 ### Caracterização da Arquitetura
 

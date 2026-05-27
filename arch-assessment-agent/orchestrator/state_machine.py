@@ -31,10 +31,6 @@ def ask_human_review(state: GraphState) -> dict:
     """Dummy node to represent human review input collection."""
     return {"current_agent": "ask_human_review"}
 
-def ask_diagrams(state: GraphState) -> dict:
-    """Dummy node to represent diagram selection collection."""
-    return {"current_agent": "ask_diagrams"}
-
 def ai_corrector_router(state: GraphState) -> str:
     """Routes based on AI reviewer approval and run count."""
     context = state["context"]
@@ -52,7 +48,54 @@ def user_feedback_router(state: GraphState) -> str:
     user_feedback = str(user_feedback or "")
     if user_feedback.strip() != "":
         return "finalizer_reshape"
-    return "ask_diagrams"
+    return "finalizer_complete"
+
+
+def reshape_router(state: GraphState) -> str:
+    """Determines if the user's feedback or report edits require diagram updates."""
+    user_feedback = state.get("user_feedback", "")
+    if isinstance(user_feedback, list):
+        user_feedback = " ".join(str(v) for v in user_feedback)
+    user_feedback = str(user_feedback or "")
+    
+    if not user_feedback.strip():
+        return "reviewer"
+        
+    prompt = f"""
+    Analyze the user's feedback on an architecture assessment report.
+    Determine if the feedback requires updating or recreating any of the architecture diagrams (Sequence Diagram, Flowchart, or ArchiMate 3.2 Capabilities Diagram).
+    
+    Feedback affects diagrams if:
+    - The user explicitly requests changes to a diagram (e.g., "muda a cor", "adiciona o bloco X ao diagrama", "corrige a sequência", "atualiza o ArchiMate").
+    - The user requests structural or flow changes to the solution (e.g., "a autenticação deve passar por Y em vez de Z", "adiciona um novo sistema de base de dados ODL").
+    - The user requests changes to systems/integrations that are represented in the diagrams.
+    
+    Feedback does NOT affect diagrams if:
+    - It only requests textual corrections, typos, terminology adjustments, adding descriptions, assumptions, risks, or text-only details.
+    
+    User Feedback:
+    {user_feedback}
+    
+    Respond with EXACTLY one of the following JSON fields (nothing else):
+    {{
+        "affects_diagrams": true or false,
+        "reason": "short explanation in English"
+    }}
+    """
+    try:
+        from langchain_core.messages import HumanMessage
+        from tools.response_parser import extract_json_text
+        import json
+        llm = config.get_llm("gemini")
+        res = llm.invoke([HumanMessage(content=prompt)])
+        data = json.loads(extract_json_text(res.content))
+        if data.get("affects_diagrams", False):
+            return "diagrams"
+    except Exception:
+        # Safe fallback: if LLM check fails, go to reviewer
+        pass
+        
+    return "reviewer"
 
 
 def build_graph():
@@ -71,7 +114,6 @@ def build_graph():
     workflow.add_node("reviewer", run_review)
     workflow.add_node("ai_corrector", run_ai_correct)
     workflow.add_node("ask_human_review", ask_human_review)
-    workflow.add_node("ask_diagrams", ask_diagrams)
     workflow.add_node("finalizer_reshape", run_reshape)
     workflow.add_node("finalizer_complete", run_finalize)
 
@@ -81,8 +123,6 @@ def build_graph():
     workflow.add_edge("impact", "question_agent")
 
     # Conditional edge for question loop
-    # If confidence is high enough → proceed to context_builder
-    # Otherwise → interrupt so the UI can collect user answers
     workflow.add_conditional_edges(
         "question_agent",
         question_router,
@@ -93,9 +133,11 @@ def build_graph():
     )
     workflow.add_edge("ask_human", "question_agent")
 
+    # High level design workflow: Context -> Reasoning -> Writing -> Diagramming -> Reviewing
     workflow.add_edge("context_builder", "reasoner")
     workflow.add_edge("reasoner", "writer")
-    workflow.add_edge("writer", "reviewer")
+    workflow.add_edge("writer", "diagrams")
+    workflow.add_edge("diagrams", "reviewer")
 
     # After reviewer, AI corrects if needed
     workflow.add_conditional_edges(
@@ -114,22 +156,24 @@ def build_graph():
         user_feedback_router,
         {
             "finalizer_reshape": "finalizer_reshape",
-            "ask_diagrams": "ask_diagrams"
+            "finalizer_complete": "finalizer_complete"
         }
     )
 
-    # If reshaping, loop back to human review
-    workflow.add_edge("finalizer_reshape", "ask_human_review")
+    # If reshaping, check if diagrams need updates
+    workflow.add_conditional_edges(
+        "finalizer_reshape",
+        reshape_router,
+        {
+            "diagrams": "diagrams",
+            "reviewer": "reviewer"
+        }
+    )
     
-    # From diagram selection, proceed to diagrams generation
-    workflow.add_edge("ask_diagrams", "diagrams")
-    
-    # From diagrams, proceed to finalizer_complete to write files
-    workflow.add_edge("diagrams", "finalizer_complete")
     workflow.add_edge("finalizer_complete", END)
 
     # Use MemorySaver for checkpoints
     memory = MemorySaver()
 
-    # Interrupt BEFORE ask_human, ask_human_review and ask_diagrams
-    return workflow.compile(checkpointer=memory, interrupt_before=["ask_human", "ask_human_review", "ask_diagrams"])
+    # Interrupt BEFORE ask_human and ask_human_review
+    return workflow.compile(checkpointer=memory, interrupt_before=["ask_human", "ask_human_review"])

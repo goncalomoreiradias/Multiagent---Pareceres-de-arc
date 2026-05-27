@@ -18,14 +18,14 @@ st.set_page_config(page_title="ArchiMap Agent", page_icon="🏗️", layout="wid
 st.markdown("""
 <style>
     /* Hide outer page scrollbar and fix viewport */
-    html, body, [data-testid="stAppViewContainer"] {
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"], .main {
         overflow: hidden !important;
         height: 100vh;
     }
     
-    /* Adjust container padding to prevent layout overflow */
-    [data-testid="stAppViewBlockContainer"] {
-        padding-top: 1.5rem !important;
+    /* Adjust container padding to prevent layout overflow and tabs cut-off */
+    [data-testid="stAppViewBlockContainer"], [data-testid="stMainBlockContainer"], [data-testid="stBlockContainer"], .block-container {
+        padding-top: 4.5rem !important;
         padding-bottom: 1rem !important;
         padding-left: 2rem !important;
         padding-right: 2rem !important;
@@ -35,7 +35,7 @@ st.markdown("""
     
     /* Columns individually scroll when content overflows */
     div[data-testid="stColumn"] {
-        max-height: 82vh;
+        max-height: calc(100vh - 130px);
         overflow-y: auto;
         overflow-x: hidden;
         padding-right: 5px;
@@ -89,8 +89,8 @@ if "graph" not in st.session_state:
         "question_agent": "pending",
         "context_builder": "pending",
         "architect_reasoner": "pending",
-        "diagram_agent": "pending",
         "architect_writer": "pending",
+        "diagram_agent": "pending",
         "reviewer_agent": "pending",
         "ai_corrector": "pending",
         "finalizer_reshape": "pending",
@@ -107,10 +107,10 @@ AGENT_SEQUENCE = [
     ("context_builder", "Contexto", "🧩"),
     ("architect_reasoner", "Raciocínio", "🧠"),
     ("architect_writer", "Escrita", "✍️"),
+    ("diagram_agent", "Diagramas", "📊"),
     ("reviewer_agent", "Review do AI", "🧐"),
     ("ai_corrector", "Auto Correção", "🛠️"),
     ("finalizer_reshape", "Loop Utilizador", "🔄"),
-    ("diagram_agent", "Diagramas", "📊"),
     ("finalizer_complete", "Finalização", "✅")
 ]
 
@@ -122,40 +122,40 @@ def render_minimap():
     <style>
       body { margin: 0; }
       .workflow-container { 
-          padding: 10px; 
+          padding: 5px; 
           font-family: sans-serif; 
           height: 100vh;
-          max-height: 350px;
+          max-height: 440px;
           overflow-y: auto; 
           overflow-x: hidden;
       }
       /* Custom scrollbar for webkit */
-      .workflow-container::-webkit-scrollbar { width: 6px; }
+      .workflow-container::-webkit-scrollbar { width: 4px; }
       .workflow-container::-webkit-scrollbar-track { background: transparent; }
       .workflow-container::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
       .workflow-container::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
       
-      .node-row { display: flex; align-items: center; margin-bottom: 20px; position: relative; }
+      .node-row { display: flex; align-items: center; margin-bottom: 10px; position: relative; }
       .node { 
-          width: 40px; height: 40px; border-radius: 50%; 
+          width: 28px; height: 28px; border-radius: 50%; 
           display: flex; align-items: center; justify-content: center;
-          font-size: 20px; background: #f0f2f6; border: 2px solid #d1d5db;
+          font-size: 14px; background: #f0f2f6; border: 2px solid #d1d5db;
           z-index: 1;
       }
       .node.done { background: #e1f5fe; border-color: #03a9f4; }
       .node.running { background: #fff9c4; border-color: #fbc02d; animation: pulse 2s infinite; }
-      .info { margin-left: 15px; }
-      .title { font-weight: bold; font-size: 14px; color: #31333f; }
-      .status { font-size: 12px; color: #555; }
+      .info { margin-left: 10px; }
+      .title { font-weight: bold; font-size: 12px; color: #31333f; }
+      .status { font-size: 10px; color: #555; }
       
       @keyframes pulse {
         0% { box-shadow: 0 0 0 0 rgba(251, 192, 45, 0.4); }
-        70% { box-shadow: 0 0 0 10px rgba(251, 192, 45, 0); }
+        70% { box-shadow: 0 0 0 6px rgba(251, 192, 45, 0); }
         100% { box-shadow: 0 0 0 0 rgba(251, 192, 45, 0); }
       }
       
       .line {
-          position: absolute; left: 20px; top: 40px; width: 2px; height: 20px;
+          position: absolute; left: 14px; top: 28px; width: 2px; height: 12px;
           background: #d1d5db; z-index: 0;
       }
     </style>
@@ -233,7 +233,7 @@ def render_minimap():
         """
     
     html += "</div>"
-    components.html(html, height=380)
+    components.html(html, height=470)
 
 
 # --- Core pipeline execution ---
@@ -257,13 +257,12 @@ def execute_pipeline(initial_input: str = None, minimap_placeholder=None):
         if st.session_state.phase == "questions":
             st.session_state.agent_status["question_agent"] = "running"
         elif st.session_state.phase == "review":
-            # Determine which finalizer to start if we are resuming from human review
             tc = st.session_state.thread_config
             user_feedback = st.session_state.graph.get_state(tc).values.get("user_feedback", "")
             if user_feedback:
                 st.session_state.agent_status["finalizer_reshape"] = "running"
-        elif st.session_state.phase == "diagram_selection":
-            st.session_state.agent_status["diagram_agent"] = "running"
+            else:
+                st.session_state.agent_status["finalizer_complete"] = "running"
 
     st.session_state.phase = "running"
 
@@ -333,10 +332,24 @@ def execute_pipeline(initial_input: str = None, minimap_placeholder=None):
             if st.session_state.agent_status[k] == "running":
                 st.session_state.agent_status[k] = "pending"
                 
+        # Mapping from graph node names to UI agent status keys
+        NODE_TO_AGENT = {
+            "intake": "intake_agent",
+            "impact": "impact_agent",
+            "question_agent": "question_agent",
+            "context_builder": "context_builder",
+            "reasoner": "architect_reasoner",
+            "writer": "architect_writer",
+            "diagrams": "diagram_agent",
+            "reviewer": "reviewer_agent",
+            "ai_corrector": "ai_corrector",
+            "finalizer_reshape": "finalizer_reshape",
+            "finalizer_complete": "finalizer_complete"
+        }
         if gs.next:
             next_node = gs.next[0]
             if next_node not in ["ask_human", "ask_human_review", "ask_diagrams"]:
-                st.session_state.agent_status[next_node] = "running"
+                st.session_state.agent_status[NODE_TO_AGENT.get(next_node, next_node)] = "running"
 
         # Final UI update
         _update_minimap()
@@ -378,12 +391,9 @@ def execute_pipeline(initial_input: str = None, minimap_placeholder=None):
 
             elif next_node == "ask_human_review":
                 st.session_state.phase = "review"
-                draft_preview = ctx.draft_report_md
+                from tools.markdown_exporter import format_report
+                draft_preview = format_report(ctx.draft_report_md)
                 st.session_state.messages.append({"role": "assistant", "content": f"📝 **Draft gerado!** Analise o parecer e dê aprovação ('ok') ou indique correções.\n\n---\n\n{draft_preview}"})
-                
-            elif next_node == "ask_diagrams":
-                st.session_state.phase = "diagram_selection"
-                st.session_state.messages.append({"role": "assistant", "content": "🎯 **Texto do parecer aprovado!** Por favor, escolha os diagramas que deseja gerar no formulário abaixo:"})
         else:
             st.session_state.phase = "done"
             if ctx and ctx.output_file_path:
@@ -425,50 +435,13 @@ with tab1:
                 render_minimap()
 
     with col_main:
-        chat_container = st.container(height=480, border=False)
+        chat_container = st.container(height=640, border=False)
         with chat_container:
             for msg in st.session_state.messages:
                 with st.chat_message(msg["role"]):
                     st.markdown(msg["content"])
                 
-        # Diagram selection UI when in diagram_selection phase
-        if st.session_state.phase == "diagram_selection":
-            with st.container(border=True):
-                st.subheader("📊 Seleção de Diagramas")
-                st.markdown("Escolha os diagramas que pretende gerar e inserir no parecer de arquitetura:")
-                
-                # Checkboxes for each diagram
-                gen_seq = st.checkbox("Diagrama de Sequência (Mermaid)", value=True, key="cb_seq")
-                gen_archimate = st.checkbox("Diagrama de Capacidades ArchiMate 3.2 (draw.io)", value=True, key="cb_arch")
-                gen_flowchart = st.checkbox("Diagrama de Arquitetura / Flowchart (Mermaid)", value=True, key="cb_flow")
-                
-                if st.button("Gerar Diagramas e Finalizar", use_container_width=True):
-                    # Collect selected diagrams
-                    selected = []
-                    if gen_seq:
-                        selected.append("Sequence")
-                    if gen_archimate:
-                        selected.append("Archimate 3.2")
-                    if gen_flowchart:
-                        selected.append("Flowchart")
-                        
-                    # Update graph state
-                    tc = st.session_state.thread_config
-                    gs = st.session_state.graph.get_state(tc)
-                    ctx = gs.values["context"]
-                    ctx.selected_diagrams = selected
-                    st.session_state.graph.update_state(tc, {"context": ctx})
-                    
-                    # Log selected diagrams to chat
-                    selected_display = ", ".join(selected) if selected else "Nenhum"
-                    st.session_state.messages.append({"role": "user", "content": f"Selecionado para gerar: {selected_display}"})
-                    st.session_state.messages.append({"role": "assistant", "content": "⚙️ A gerar diagramas selecionados e a construir parecer final..."})
-                    
-                    st.session_state.agent_status["diagram_agent"] = "running"
-                    
-                    execute_pipeline(minimap_placeholder=minimap_placeholder)
-                
-        is_chat_disabled = st.session_state.phase in ["running", "diagram_selection"]
+        is_chat_disabled = st.session_state.phase in ["running"]
         if user_input := st.chat_input("Descreva o pedido ou responda às perguntas...", disabled=is_chat_disabled):
             st.session_state.messages.append({"role": "user", "content": user_input})
             with chat_container:
@@ -510,7 +483,7 @@ with tab1:
                 feedback = "" if user_input.strip().lower() in ["ok", "sim", "yes", "aprovar", "aprovado"] else user_input
                 st.session_state.graph.update_state(tc, {"user_feedback": feedback})
                 
-                msg = "🔄 Feedback recebido. A reformular o parecer..." if feedback else "✨ Parecer aprovado! A selecionar diagramas..."
+                msg = "🔄 Feedback recebido. A reformular o parecer..." if feedback else "✨ Parecer aprovado! A finalizar..."
                 st.session_state.messages.append({"role": "assistant", "content": msg})
                 with chat_container:
                     with st.chat_message("assistant"):
